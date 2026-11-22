@@ -1,11 +1,11 @@
-package com.nirvana.template;
+package com.nirvana.community;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @SpringBootApplication
-public class ServiceApplication {
+public class CommunityServiceApplication {
 	public static void main(String[] args) {
-		SpringApplication.run(ServiceApplication.class, args);
+		SpringApplication.run(CommunityServiceApplication.class, args);
 	}
 }

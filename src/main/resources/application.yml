@@ -1,6 +1,9 @@
+server:
+  port: ${SERVER_PORT:8084}
+
 spring:
   application:
-    name: spring-service-template
+    name: community-service
   profiles:
     default: local
   cloud:

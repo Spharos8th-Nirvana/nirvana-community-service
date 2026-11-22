@@ -1,29 +1,19 @@
-# 서비스 이름
+# nirvana-community-service
 
 ## 서비스 개요
 
-- 목적: <!-- 서비스 목적 -->
-- 담당자 / 백업 리뷰어: <!-- GitHub 사용자 또는 팀 -->
-- 소유 데이터와 운영 책임: <!-- 서비스 경계와 책임 -->
-- API 문서: [Swagger UI](http://localhost:8080/swagger-ui/index.html)
-- 기본 포트 / 헬스체크: `8080` / `GET /actuator/health`
+- 목적: 커뮤니티 서비스. 게시판·카테고리, 게시글, 공지, 댓글, 좋아요, 신고, 리뷰(게시글 형태)를 담당합니다.
+- 담당자 / 백업 리뷰어: @xoxxi / <!-- 확정 후 기입 -->
+- 소유 데이터와 운영 책임: `nirvana_community` 스키마. 작성자 닉네임 등 회원 정보는 member-service, 첨부 이미지는 media-service를 참조합니다(UUID 참조, FK 없음).
+- API 문서: [Swagger UI](http://localhost:8084/swagger-ui/index.html) (local 프로필)
+- 기본 포트 / 헬스체크: `8084` (임시, 팀 확정 전) / `GET /actuator/health`
 
-위 서비스 정보와 주소는 템플릿 값입니다.
-서비스 생성 후 실제 정보로 변경하세요.
-
-## 서비스 레포 생성 후
-
-[서비스 초기 설정 가이드](docs/INITIAL_SETUP.md)에 따라 다음 항목을 변경합니다.
-
-- Gradle 프로젝트 이름
-- Java 패키지
-- 시작 클래스 이름
-- 애플리케이션 이름
-- 실행 포트
-- README의 서비스 정보
-
-애플리케이션 이름은 Config Repo의 서비스별 설정 파일 이름과 일치시킵니다.
-예시값을 그대로 적용하지 말고 담당 서비스의 이름과 포트를 확인하세요.
+| 항목 | 값 |
+| --- | --- |
+| Gradle 프로젝트 | `nirvana-community-service` |
+| Java 패키지 | `com.nirvana.community` |
+| 시작 클래스 | `CommunityServiceApplication` |
+| `spring.application.name` | `community-service` → Config Repo `community-service*.yml` |
 
 ## 로컬 실행
 
