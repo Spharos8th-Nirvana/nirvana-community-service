@@ -38,4 +38,12 @@ dependencies {
     // 반복 코드 줄이기 - Lombok
     compileOnly 'org.projectlombok:lombok'                                   // 컴파일할 때 Lombok 애너테이션 사용
     annotationProcessor 'org.projectlombok:lombok'                           // 컴파일 중 Getter, Setter, Builder 등 생성
+    // =========================================================================
+    // 테스트 - JUnit, MockMvc
+    testImplementation 'org.springframework.boot:spring-boot-starter-webmvc-test'  // JUnit, AssertJ, MockMvc 등 Spring MVC 테스트 도구
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'                    // Gradle에서 JUnit 테스트 실행
+}
+
+tasks.named('test') {
+    useJUnitPlatform()
 }
