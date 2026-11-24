@@ -117,6 +117,81 @@ class GlobalExceptionHandlerWebMvcTest {
 			.andExpect(jsonPath("$.error.details.length()").value(2));
 	}
 
+	@Test
+	void 없는_주소는_404_NOT_FOUND이고_details_키가_없다() throws Exception {
+		mockMvc.perform(get("/test/unknown").header("traceparent", TRACEPARENT))
+			.andExpect(status().isNotFound())
+			.andExpect(content().json("""
+				{
+				  "success": false,
+				  "data": null,
+				  "error": { "code": "NOT_FOUND", "message": "요청한 주소를 찾을 수 없습니다.", "traceId": "%s" }
+				}
+				""".formatted(TRACE_ID), JsonCompareMode.STRICT));
+	}
+
+	@Test
+	void 허용하지_않는_메서드는_405_METHOD_NOT_ALLOWED이다() throws Exception {
+		mockMvc.perform(post("/test/success"))
+			.andExpect(status().isMethodNotAllowed())
+			.andExpect(jsonPath("$.error.code").value("METHOD_NOT_ALLOWED"))
+			.andExpect(jsonPath("$.error.message").value("허용하지 않는 메서드입니다."));
+	}
+
+	@Test
+	void 읽을_수_없는_본문은_400_INVALID_REQUEST이고_파서_오류_원문을_노출하지_않는다() throws Exception {
+		String body = mockMvc.perform(post("/test/validation")
+				.contentType(MediaType.APPLICATION_JSON)
+				.content("{ \"title\": "))
+			.andExpect(status().isBadRequest())
+			.andExpect(jsonPath("$.error.code").value("INVALID_REQUEST"))
+			.andExpect(jsonPath("$.error.message").value("잘못된 요청입니다."))
+			.andExpect(jsonPath("$.error.details").doesNotExist())
+			.andReturn().getResponse().getContentAsString();
+
+		assertThat(body).doesNotContain("JSON", "Exception", "tools.jackson");
+	}
+
+	@Test
+	void 타입이_안_맞는_파라미터는_400_INVALID_REQUEST이다() throws Exception {
+		mockMvc.perform(get("/test/param").param("count", "abc"))
+			.andExpect(status().isBadRequest())
+			.andExpect(jsonPath("$.error.code").value("INVALID_REQUEST"));
+	}
+
+	@Test
+	void 필수_파라미터가_없으면_400_INVALID_REQUEST이다() throws Exception {
+		mockMvc.perform(get("/test/param"))
+			.andExpect(status().isBadRequest())
+			.andExpect(jsonPath("$.error.code").value("INVALID_REQUEST"));
+	}
+
+	// 표에 없는 4xx는 상태코드를 유지하고 INVALID_REQUEST로 응답한다.
+	@Test
+	void 지원하지_않는_Content_Type은_415를_유지하고_INVALID_REQUEST로_응답한다() throws Exception {
+		mockMvc.perform(post("/test/validation")
+				.contentType(MediaType.TEXT_PLAIN)
+				.content("title"))
+			.andExpect(status().isUnsupportedMediaType())
+			.andExpect(jsonPath("$.error.code").value("INVALID_REQUEST"));
+	}
+
+	@Test
+	void 예상하지_못한_예외는_500이고_내부_정보를_노출하지_않는다() throws Exception {
+		String body = mockMvc.perform(get("/test/unexpected").header("traceparent", TRACEPARENT))
+			.andExpect(status().isInternalServerError())
+			.andExpect(content().json("""
+				{
+				  "success": false,
+				  "data": null,
+				  "error": { "code": "INTERNAL_SERVER_ERROR", "message": "서버 내부 오류가 발생했습니다.", "traceId": "%s" }
+				}
+				""".formatted(TRACE_ID), JsonCompareMode.STRICT))
+			.andReturn().getResponse().getContentAsString();
+
+		assertThat(body).doesNotContain(INTERNAL_DETAIL, "IllegalStateException", "at com.nirvana");
+	}
+
 	record TestRequest(
 		@NotBlank(message = "제목을 입력해주세요.")
 		String title,
