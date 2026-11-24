@@ -1,5 +1,7 @@
 package com.nirvana.community.global.exception;
 
+import java.util.List;
+
 import org.jspecify.annotations.Nullable;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.http.HttpHeaders;
@@ -7,12 +9,14 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.util.StringUtils;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
 
 import com.nirvana.community.global.response.ApiResponse;
+import com.nirvana.community.global.response.ErrorDetail;
 import com.nirvana.community.global.response.ErrorResponse;
 
 import io.micrometer.tracing.Span;
@@ -42,6 +46,22 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 	public ResponseEntity<ApiResponse<Void>> handleUnexpectedException(Exception exception) {
 		log.error("Unexpected exception occurred", exception);
 		return createErrorResponse(ErrorCode.INTERNAL_SERVER_ERROR);
+	}
+
+	// 요청 DTO @Valid 검증 실패는 필드별 사유를 details에 담는다. 입력값 자체는 응답에 넣지 않는다.
+	@Override
+	protected ResponseEntity<Object> handleMethodArgumentNotValid(MethodArgumentNotValidException exception,
+		HttpHeaders headers, HttpStatusCode statusCode, WebRequest request) {
+		ErrorCode errorCode = ErrorCode.VALIDATION_FAILED;
+		List<ErrorDetail> details = exception.getBindingResult().getFieldErrors().stream()
+			.map(fieldError -> new ErrorDetail(fieldError.getField(), fieldError.getDefaultMessage()))
+			.toList();
+		log.warn("Validation failed: fields={}", details.stream().map(ErrorDetail::field).toList());
+		ErrorResponse error = new ErrorResponse(errorCode.getCode(), errorCode.getMessage(), details, findTraceId());
+		return ResponseEntity
+			.status(errorCode.getStatus())
+			.headers(headers)
+			.body(ApiResponse.failure(error));
 	}
 
 	// Spring 예외 메시지(파서 오류 원문, 클래스명)는 응답에 넣지 않고 ErrorCode의 메시지만 쓴다.
