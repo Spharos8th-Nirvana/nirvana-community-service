@@ -90,6 +90,33 @@ class GlobalExceptionHandlerWebMvcTest {
 				""", JsonCompareMode.STRICT));
 	}
 
+	@Test
+	void 요청_DTO_검증에_실패하면_400_VALIDATION_FAILED와_필드별_details를_준다() throws Exception {
+		mockMvc.perform(post("/test/validation")
+				.header("traceparent", TRACEPARENT)
+				.contentType(MediaType.APPLICATION_JSON)
+				.content("""
+					{ "title": " ", "nickname": "이름이너무길어요" }
+					"""))
+			.andExpect(status().isBadRequest())
+			.andExpect(content().json("""
+				{
+				  "success": false,
+				  "data": null,
+				  "error": {
+				    "code": "VALIDATION_FAILED",
+				    "message": "입력값을 확인해주세요.",
+				    "details": [
+				      { "field": "title", "reason": "제목을 입력해주세요." },
+				      { "field": "nickname", "reason": "닉네임은 5자 이하로 입력해주세요." }
+				    ],
+				    "traceId": "%s"
+				  }
+				}
+				""".formatted(TRACE_ID), JsonCompareMode.LENIENT))
+			.andExpect(jsonPath("$.error.details.length()").value(2));
+	}
+
 	record TestRequest(
 		@NotBlank(message = "제목을 입력해주세요.")
 		String title,
