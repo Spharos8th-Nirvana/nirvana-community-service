@@ -6,6 +6,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.support.DefaultListableBeanFactory;
 import org.springframework.test.json.JsonCompareMode;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
@@ -14,13 +16,15 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.nirvana.community.global.response.ApiResponse;
 
+import io.micrometer.tracing.Tracer;
+
 class GlobalExceptionHandlerTest {
 
 	private static final String INTERNAL_DETAIL = "SELECT password FROM members WHERE id = 1";
 
 	private final MockMvc mockMvc = MockMvcBuilders
 		.standaloneSetup(new TestController())
-		.setControllerAdvice(new GlobalExceptionHandler())
+		.setControllerAdvice(new GlobalExceptionHandler(noTracer()))
 		.build();
 
 	@Test
@@ -42,7 +46,7 @@ class GlobalExceptionHandlerTest {
 				{
 				  "success": false,
 				  "data": null,
-				  "error": { "code": "%s", "message": "%s" }
+				  "error": { "code": "%s", "message": "%s", "traceId": null }
 				}
 				""".formatted(errorCode.getCode(), errorCode.getMessage()), JsonCompareMode.STRICT));
 	}
@@ -55,7 +59,7 @@ class GlobalExceptionHandlerTest {
 				{
 				  "success": false,
 				  "data": null,
-				  "error": { "code": "INTERNAL_SERVER_ERROR", "message": "서버 내부 오류가 발생했습니다." }
+				  "error": { "code": "INTERNAL_SERVER_ERROR", "message": "서버 내부 오류가 발생했습니다.", "traceId": null }
 				}
 				""", JsonCompareMode.STRICT))
 			.andReturn()
@@ -63,6 +67,11 @@ class GlobalExceptionHandlerTest {
 			.getContentAsString();
 
 		assertThat(body).doesNotContain(INTERNAL_DETAIL, "IllegalStateException", "at com.nirvana");
+	}
+
+	// Tracer 빈이 없는 환경: Trace ID를 구할 수 없을 때도 오류 응답이 나가는지 본다.
+	private static ObjectProvider<Tracer> noTracer() {
+		return new DefaultListableBeanFactory().getBeanProvider(Tracer.class);
 	}
 
 	@RestController
