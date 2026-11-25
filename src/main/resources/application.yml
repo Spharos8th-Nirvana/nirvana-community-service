@@ -9,6 +9,11 @@ spring:
   cloud:
     config:
       enabled: false
+  # DDL 컬럼이 camelCase라 Entity 필드 이름을 그대로 테이블·컬럼 이름으로 쓴다. (기본값은 snake_case로 바꾼다)
+  jpa:
+    hibernate:
+      naming:
+        physical-strategy: org.hibernate.boot.model.naming.PhysicalNamingStrategyStandardImpl
   # 목록 요청 page는 0부터, size 기본 20·최대 100. 100을 넘으면 100으로 처리된다. (COM-NFR-02, COM-NFR-08)
   data:
     web:
