@@ -40,7 +40,7 @@ class AdminBoardTypeControllerTest {
 		}
 		""";
 	private static final BoardTypeResponse RESPONSE =
-		new BoardTypeResponse("COMMUNITY", "자유게시판", false, true, true, true, false, true, false, 5);
+		new BoardTypeResponse("COMMUNITY", "자유게시판", false, true, true, true, false, true, false, 5, true, true);
 
 	@Autowired
 	private MockMvc mockMvc;

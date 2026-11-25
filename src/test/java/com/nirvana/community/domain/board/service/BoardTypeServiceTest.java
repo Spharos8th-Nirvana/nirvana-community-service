@@ -24,6 +24,7 @@ import com.nirvana.community.domain.board.dto.CreateBoardTypeRequest;
 import com.nirvana.community.domain.board.dto.UpdateBoardTypeRequest;
 import com.nirvana.community.domain.board.entity.BoardFeatures;
 import com.nirvana.community.domain.board.entity.BoardType;
+import com.nirvana.community.domain.board.repository.BoardPermissionRepository;
 import com.nirvana.community.domain.board.repository.BoardTypeRepository;
 import com.nirvana.community.global.auth.AccountType;
 import com.nirvana.community.global.auth.Requester;
@@ -43,6 +44,8 @@ class BoardTypeServiceTest {
 
 	@Mock
 	private BoardTypeRepository boardTypeRepository;
+	@Mock
+	private BoardPermissionRepository boardPermissionRepository;
 	@InjectMocks
 	private BoardTypeService boardTypeService;
 
@@ -50,7 +53,7 @@ class BoardTypeServiceTest {
 	void 운영_중인_게시판_목록을_응답으로_바꿔_준다() {
 		given(boardTypeRepository.findAllByActiveTrueOrderByIdAsc()).willReturn(List.of(savedBoardType()));
 
-		List<BoardTypeResponse> responses = boardTypeService.getActiveBoardTypes();
+		List<BoardTypeResponse> responses = boardTypeService.getActiveBoardTypes(null);
 
 		assertThat(responses).hasSize(1);
 		assertThat(responses.get(0).code()).isEqualTo("COMMUNITY");

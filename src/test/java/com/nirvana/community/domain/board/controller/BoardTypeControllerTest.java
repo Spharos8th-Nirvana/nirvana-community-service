@@ -28,8 +28,8 @@ class BoardTypeControllerTest {
 
 	@Test
 	void 로그인하지_않아도_게시판_목록을_볼_수_있다() throws Exception {
-		given(boardTypeService.getActiveBoardTypes()).willReturn(List.of(
-			new BoardTypeResponse("COMMUNITY", "자유게시판", false, true, true, true, false, true, false, 5)));
+		given(boardTypeService.getActiveBoardTypes(null)).willReturn(List.of(
+			new BoardTypeResponse("COMMUNITY", "자유게시판", false, true, true, true, false, true, false, 5, true, false)));
 
 		mockMvc.perform(get("/api/v1/boards"))
 			.andExpect(status().isOk())
