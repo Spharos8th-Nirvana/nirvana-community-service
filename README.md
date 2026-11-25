@@ -48,6 +48,51 @@ JAR만 빌드하려면 bootJar를 사용합니다.
 현재 기본 CI는 develop·main 대상 PR에서 bootJar를 실행합니다.
 build에 포함된 테스트 실행과 CI의 실제 검사 범위는 구분해서 확인하세요.
 
+## 패키지 구조
+
+```
+com.nirvana.community
+├── global/   # 여러 도메인이 같이 쓰는 코드: 응답, 예외, 인증 정보, 설정
+└── domain/   # 도메인별 코드
+    ├── board/
+    ├── post/
+    ├── comment/
+    ├── like/
+    ├── report/
+    └── review/
+```
+
+새 코드는 그 코드가 다루는 테이블을 맡은 도메인 패키지에 둡니다.
+여러 도메인이 같이 쓰는 코드만 `global`에 둡니다.
+
+| 패키지 | 맡는 테이블 | 요구사항 |
+| --- | --- | --- |
+| `board` | boardTypes, boardPermissions, boardCategories, templeBoards | COM-BRD |
+| `post` | posts, postMedia, postPins, postsCount | COM-PST, 조회수 COM-LIK-10~11 |
+| `comment` | comments | COM-CMT |
+| `like` | postLikes, commentLikes | COM-LIK (조회수 제외) |
+| `report` | reportTargets, reports, reportThresholds | COM-RPT |
+| `review` | reviewEligibilities, reviewDetails | COM-REV |
+
+각 패키지의 `package-info.java`에 맡는 일과 요구사항 ID 범위가 적혀 있습니다.
+
+### 도메인 패키지 안의 계층
+
+도메인 패키지 안은 계층별 하위 패키지로 나눕니다. 예: `domain/post/service/PostService.java`
+
+| 하위 패키지 | 두는 것 |
+| --- | --- |
+| `controller` | HTTP 요청·응답 처리, 요청 DTO 검증 |
+| `service` | 비즈니스 로직, 권한 검증, 트랜잭션 |
+| `repository` | Entity 조회·저장 (DB 접근) |
+| `entity` | Entity와 도메인 상태 규칙, 상태 enum |
+| `dto` | API 요청·응답 객체 |
+
+- 호출 방향은 `controller → service → repository`입니다. Controller가 Repository를 직접 부르지 않습니다.
+- 다른 도메인의 데이터가 필요하면 그 도메인의 Service를 부릅니다.
+- 하위 패키지는 미리 만들지 않습니다. 그 계층의 첫 클래스를 만들 때 생깁니다.
+- `outboxEvents`, `processedEvents`는 도메인이 아니라 Kafka 연동용 테이블이라, Kafka 작업 때 `global` 아래에 둡니다.
+
 ## 개발 규칙
 
 개발과 기여 방법은 [CONTRIBUTING.md](CONTRIBUTING.md)를 참고하세요.
