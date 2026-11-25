@@ -5,8 +5,8 @@
 - 목적: 커뮤니티 서비스. 게시판·카테고리, 게시글, 공지, 댓글, 좋아요, 신고, 리뷰(게시글 형태)를 담당합니다.
 - 담당자 / 백업 리뷰어: @xoxxi / <!-- 확정 후 기입 -->
 - 소유 데이터와 운영 책임: `nirvana_community` 스키마. 작성자 닉네임 등 회원 정보는 member-service, 첨부 이미지는 media-service를 참조합니다(UUID 참조, FK 없음).
-- API 문서: [Swagger UI](http://localhost:8087/swagger-ui/index.html) (local 프로필)
-- 기본 포트 / 헬스체크: `8087` / `GET /actuator/health`
+- API 문서: [Swagger UI](http://localhost:8084/swagger-ui/index.html) (local 프로필)
+- 기본 포트 / 헬스체크: `8084` (임시, 팀 확정 전) / `GET /actuator/health`
 
 | 항목 | 값 |
 | --- | --- |
