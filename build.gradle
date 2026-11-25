@@ -14,17 +14,6 @@ java {
 
 repositories {
     mavenCentral()
-    // 팀 공통 라이브러리 저장소 (GitHub Packages). read:packages 권한 토큰이 필요하다.
-    maven {
-        url = uri('https://maven.pkg.github.com/spharos8th-nirvana/nirvana-jpa-auditing')
-        credentials {
-            username = providers.environmentVariable('GITHUB_ACTOR').getOrNull()
-            password = providers.environmentVariable('GITHUB_TOKEN').getOrNull()
-        }
-        content {
-            includeModule('com.nirvana', 'nirvana-jpa-auditing')
-        }
-    }
 }
 
 dependencies {
@@ -50,7 +39,6 @@ dependencies {
     // 데이터베이스 - JPA, MySQL
     implementation 'org.springframework.boot:spring-boot-starter-data-jpa'   // JPA(Hibernate)로 DB 테이블과 객체 연결
     runtimeOnly 'com.mysql:mysql-connector-j'                                // MySQL 접속 드라이버 (실행할 때만 필요)
-    implementation 'com.nirvana:nirvana-jpa-auditing:0.1.0'                  // 팀 공통 감사 컬럼(createdAt, updatedAt 등) 라이브러리
     // =========================================================================
     // 반복 코드 줄이기 - Lombok
     compileOnly 'org.projectlombok:lombok'                                   // 컴파일할 때 Lombok 애너테이션 사용

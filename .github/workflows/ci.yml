@@ -6,7 +6,6 @@ on:
 
 permissions:
   contents: read
-  packages: read  # 팀 공통 라이브러리(GitHub Packages) 내려받기
 
 jobs:
   build:
@@ -19,6 +18,3 @@ jobs:
           distribution: temurin
           java-version: '21'
       - run: bash ./gradlew --no-daemon bootJar
-        env:
-          GITHUB_ACTOR: ${{ github.actor }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

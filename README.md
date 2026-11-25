@@ -18,7 +18,6 @@
 ## 로컬 실행
 
 - 사전 요구사항은 JDK 21입니다.
-- 팀 공통 라이브러리 `nirvana-jpa-auditing`을 GitHub Packages에서 받습니다. 빌드 전에 환경 변수 `GITHUB_ACTOR`(GitHub 아이디)와 `GITHUB_TOKEN`(`read:packages` 권한 토큰)을 설정합니다.
 - macOS와 Linux: `./gradlew bootRun`
 - Windows PowerShell: `.\gradlew.bat bootRun`
 - Windows Git Bash: `./gradlew bootRun`
