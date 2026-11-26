@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.nirvana.community.domain.post.dto.CreatePostRequest;
 import com.nirvana.community.domain.post.dto.CreatePostResponse;
+import com.nirvana.community.domain.post.dto.PostDetailResponse;
 import com.nirvana.community.domain.post.dto.PostSummaryResponse;
 import com.nirvana.community.domain.post.service.PostService;
 import com.nirvana.community.global.auth.CurrentRequester;
@@ -30,7 +31,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 // 게시글 API. 작성자는 Gateway 인증 헤더의 요청자로 정한다. (COM-BRD-02)
-@Tag(name = "게시글", description = "게시글 작성, 게시글 목록 조회")
+@Tag(name = "게시글", description = "게시글 작성, 게시글 목록 조회, 게시글 상세 조회")
 @RestController
 @RequiredArgsConstructor
 public class PostController {
@@ -69,5 +70,22 @@ public class PostController {
 		@RequestParam(required = false) @Nullable UUID categoryUuid,
 		@ParameterObject Pageable pageable) {
 		return ApiResponse.success(postService.listPosts(boardCode, requester, categoryUuid, pageable));
+	}
+
+	@Operation(
+		summary = "게시글 상세 조회",
+		description = "글 하나의 제목, 본문(정제된 HTML), 작성자, 게시판·카테고리, 일시, 조회수·좋아요 수·댓글 수, 내 글인지(mine)를 준다. "
+			+ "공개 글은 누구나 본다. 임시저장·예약 글은 작성자 본인만 보고, 그 외(ADMIN 포함)에는 없는 글로 404. "
+			+ "숨김 글은 ADMIN과 작성자 본인만 본문을 보고, 삭제 글은 아무도 못 본다. 볼 수 없는 글은 200에 viewable=false이고 "
+			+ "postUuid 외 항목은 모두 null이다. likedByMe·pinned는 기능이 아직 없어 항상 false다. 조회수는 올리지 않는다. "
+			+ "집계 저장소가 응답하지 않으면 수는 0이다. 로그인 없이 호출할 수 있고 글이 속한 게시판의 열람 권한이 필요하다. "
+			+ "권한이 없으면 비회원 401, 로그인 사용자 403. 글이 없으면 404(POST_NOT_FOUND), 게시판이 운영 중이 아니면 "
+			+ "404(BOARD_NOT_FOUND), postUuid 형식이 틀리면 400. (COM-PST-23, COM-PST-24, COM-PST-09, COM-PST-12, "
+			+ "COM-BRD-01, COM-NFR-01, COM-NFR-05)")
+	@GetMapping("/api/v1/posts/{postUuid}")
+	public ApiResponse<PostDetailResponse> get(
+		@PathVariable UUID postUuid,
+		@Parameter(hidden = true) @CurrentRequester(required = false) @Nullable Requester requester) {
+		return ApiResponse.success(postService.getPost(postUuid, requester));
 	}
 }
