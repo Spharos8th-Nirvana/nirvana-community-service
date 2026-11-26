@@ -1,83 +1,30 @@
 package com.nirvana.community.domain.post.service;
 
-import java.time.LocalDateTime;
-import java.time.temporal.ChronoUnit;
-import java.util.UUID;
-
-import org.jspecify.annotations.Nullable;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
-import com.nirvana.community.domain.board.entity.BoardType;
-import com.nirvana.community.domain.board.service.BoardPermissionChecker;
-import com.nirvana.community.domain.board.service.BoardReader;
 import com.nirvana.community.domain.post.dto.CreatePostRequest;
 import com.nirvana.community.domain.post.dto.CreatePostResponse;
 import com.nirvana.community.domain.post.entity.Post;
-import com.nirvana.community.domain.post.repository.PostRepository;
 import com.nirvana.community.global.auth.Requester;
-import com.nirvana.community.global.exception.BusinessException;
-import com.nirvana.community.global.exception.ErrorCode;
 
 import lombok.RequiredArgsConstructor;
 
+// 이 클래스에는 일부러 @Transactional을 붙이지 않는다. 트랜잭션은 PostWriter.create 안에서만 열린다.
 @Service
 @RequiredArgsConstructor
 public class PostService {
 
-	private final PostRepository postRepository;
-	private final BoardReader boardReader;
-	private final BoardPermissionChecker boardPermissionChecker;
-	private final AuthorNameProvider authorNameProvider;
 	private final PostContentSanitizer postContentSanitizer;
+	private final AuthorNameProvider authorNameProvider;
+	private final PostWriter postWriter;
 
-	// 본문 정제 → 게시판 확인 → 작성 권한 확인 → 카테고리 확인 → 글 생성 → 저장. (COM-PST-01, COM-PST-04)
-	@Transactional
+	// 본문 정제 → 작성자 이름 조회 → (트랜잭션) 확인과 저장. (COM-PST-01, COM-PST-04)
+	// 작성자 이름은 나중에 Member·Temple 원격 호출로 바뀐다. 그동안 DB 커넥션을 붙잡지 않도록 트랜잭션 전에 구한다.
 	public CreatePostResponse create(Requester requester, String boardCode, CreatePostRequest request) {
 		String content = postContentSanitizer.sanitize(request.content());
-		BoardType boardType = getWritableBoardType(boardCode);
-		boardPermissionChecker.validateWritable(boardType.getId(), requester);
-		Long categoryId = resolveCategoryId(boardType, request.categoryUuid());
-
-		Post post = Post.create(boardType.getId(), categoryId, requester,
-			authorNameProvider.getAuthorName(requester), request.title(), content, publishedNow());
-		postRepository.save(post);
+		String authorName = authorNameProvider.getAuthorName(requester);
+		Post post = postWriter.create(boardCode, requester, authorName, request.title(), content,
+			request.categoryUuid());
 		return CreatePostResponse.from(post);
-	}
-
-	// posts.scheduledAt은 DATETIME(초 단위)이라 MySQL이 소수 초를 반올림한다. 응답 값과 저장 값이 같도록 초 단위로 자른다.
-	private LocalDateTime publishedNow() {
-		return LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS);
-	}
-
-	// 운영 중인 게시판이어야 하고(COM-BRD-12), 리뷰 게시판은 일반 글로 쓸 수 없다(COM-PST-11).
-	private BoardType getWritableBoardType(String boardCode) {
-		BoardType boardType = boardReader.getActiveBoardTypeWithShareLock(boardCode);
-		if (boardType.isReview()) {
-			throw new BusinessException(ErrorCode.REVIEW_BOARD_WRITE_NOT_ALLOWED);
-		}
-		return boardType;
-	}
-
-	// 카테고리를 쓰는 게시판은 그 게시판의 사용 중인 카테고리를 꼭 고르고, 쓰지 않는 게시판은 카테고리를 받지 않는다.
-	// 없는 것, 다른 게시판 것, 보관된 것은 구분하지 않고 INVALID_CATEGORY로 거절한다. (COM-PST-02, COM-BRD-22)
-	private @Nullable Long resolveCategoryId(BoardType boardType, @Nullable UUID categoryUuid) {
-		if (!boardType.isUseCategory()) {
-			rejectCategory(categoryUuid);
-			return null;
-		}
-		if (categoryUuid == null) {
-			throw new BusinessException(ErrorCode.CATEGORY_REQUIRED);
-		}
-		return boardReader.findCategoryWithShareLock(categoryUuid)
-			.filter(category -> category.isUsableIn(boardType))
-			.orElseThrow(() -> new BusinessException(ErrorCode.INVALID_CATEGORY))
-			.getId();
-	}
-
-	private void rejectCategory(@Nullable UUID categoryUuid) {
-		if (categoryUuid != null) {
-			throw new BusinessException(ErrorCode.CATEGORY_NOT_ALLOWED);
-		}
 	}
 }
