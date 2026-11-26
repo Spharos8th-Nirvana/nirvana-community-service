@@ -3,6 +3,7 @@ package com.nirvana.community.domain.post.entity;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
+import org.hibernate.annotations.DynamicUpdate;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 import org.jspecify.annotations.Nullable;
@@ -10,6 +11,8 @@ import org.jspecify.annotations.Nullable;
 import com.nirvana.community.global.auth.AccountType;
 import com.nirvana.community.global.auth.Requester;
 import com.nirvana.community.global.entity.BaseTimeEntity;
+import com.nirvana.community.global.exception.BusinessException;
+import com.nirvana.community.global.exception.ErrorCode;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -25,8 +28,10 @@ import lombok.NoArgsConstructor;
 
 // 게시글 루트. 게시판·카테고리·사찰 탭은 id로만 가리키고 연관관계는 매핑하지 않는다.
 // createdAt, updatedAt은 BaseTimeEntity가 채운다.
+// @DynamicUpdate: 바뀐 컬럼만 UPDATE한다. 수정과 삭제·숨김이 동시에 와도 서로의 값(deleted, hidden)을 덮어쓰지 않는다.
 @Getter
 @Entity
+@DynamicUpdate
 @Table(name = "posts")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Post extends BaseTimeEntity {
@@ -111,6 +116,40 @@ public class Post extends BaseTimeEntity {
 	public static Post create(Long typeId, @Nullable Long categoryId, Requester author, String authorName,
 		String title, String content, LocalDateTime publishedAt) {
 		return new Post(typeId, categoryId, author, authorName, title, content, publishedAt);
+	}
+
+	// 수정할 수 있는 요청자인지 확인한다. 작성자 본인만 수정하고 ADMIN도 남의 글은 수정하지 않는다(COM-BRD-04).
+	// 삭제된 글은 수정하지 못한다(COM-PST-15). 수정 트랜잭션이 카테고리를 확인하기 전에 먼저 부른다.
+	public void validateUpdatableBy(Requester editor) {
+		if (!isWrittenBy(editor)) {
+			throw new BusinessException(ErrorCode.FORBIDDEN);
+		}
+		if (deleted) {
+			throw new BusinessException(ErrorCode.POST_ALREADY_DELETED);
+		}
+	}
+
+	// 제목·본문·카테고리를 바꾸고 수정한 사람의 구분을 남긴다. 수정 시각은 Auditing이 갱신한다. (COM-PST-08)
+	// 본문은 정제한 HTML, categoryId는 게시판 규칙으로 확인한 값이어야 한다(COM-PST-02, COM-PST-04).
+	public void update(Requester editor, String title, String content, @Nullable Long categoryId) {
+		validateUpdatableBy(editor);
+		this.title = title;
+		this.content = content;
+		this.categoryId = categoryId;
+		this.updateByType = editor.accountType();
+	}
+
+	// 행을 지우지 않고 삭제 표시만 한다. 상태(status)는 바꾸지 않는다. (COM-PST-09, COM-PST-12)
+	// 작성자 본인 또는 ADMIN만 삭제한다(COM-BRD-04). 이미 삭제된 글은 그대로 두어 같은 결과로 끝난다(COM-PST-15).
+	public void delete(Requester requester) {
+		if (!isWrittenBy(requester) && !isAdmin(requester)) {
+			throw new BusinessException(ErrorCode.FORBIDDEN);
+		}
+		if (deleted) {
+			return;
+		}
+		this.deleted = true;
+		this.updateByType = requester.accountType();
 	}
 
 	// 이 요청자에게 글이 있는 것으로 보이는지. false면 없는 글(404)로 응답한다. (4.5)
