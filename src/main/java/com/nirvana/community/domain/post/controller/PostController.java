@@ -8,6 +8,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -18,6 +19,8 @@ import com.nirvana.community.domain.post.dto.CreatePostRequest;
 import com.nirvana.community.domain.post.dto.CreatePostResponse;
 import com.nirvana.community.domain.post.dto.PostDetailResponse;
 import com.nirvana.community.domain.post.dto.PostSummaryResponse;
+import com.nirvana.community.domain.post.dto.UpdatePostRequest;
+import com.nirvana.community.domain.post.dto.UpdatePostResponse;
 import com.nirvana.community.domain.post.service.PostService;
 import com.nirvana.community.global.auth.CurrentRequester;
 import com.nirvana.community.global.auth.Requester;
@@ -31,7 +34,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 // 게시글 API. 작성자는 Gateway 인증 헤더의 요청자로 정한다. (COM-BRD-02)
-@Tag(name = "게시글", description = "게시글 작성, 게시글 목록 조회, 게시글 상세 조회")
+@Tag(name = "게시글", description = "게시글 작성, 게시글 목록 조회, 게시글 상세 조회, 게시글 수정")
 @RestController
 @RequiredArgsConstructor
 public class PostController {
@@ -87,5 +90,22 @@ public class PostController {
 		@PathVariable UUID postUuid,
 		@Parameter(hidden = true) @CurrentRequester(required = false) @Nullable Requester requester) {
 		return ApiResponse.success(postService.getPost(postUuid, requester));
+	}
+
+	@Operation(
+		summary = "게시글 수정",
+		description = "내 글의 제목, 본문, 카테고리를 바꾼다. 세 값을 모두 보내며 규칙은 작성과 같다: 제목(200자 이내)과 본문은 필수, "
+			+ "본문 HTML은 허용한 서식 태그만 남기고 정제한 뒤 글자가 없으면 400, 카테고리를 쓰는 게시판은 사용 중인 categoryUuid가 "
+			+ "필수이고 쓰지 않는 게시판은 보내면 400. 수정한 사람의 구분과 수정 시각을 남긴다. "
+			+ "작성자 본인만 수정할 수 있고 다른 사람·ADMIN은 403. 삭제된 글은 409(POST_ALREADY_DELETED). "
+			+ "글이 없거나 남의 임시저장·예약 글이면 404(POST_NOT_FOUND), 게시판이 운영 중이 아니면 404(BOARD_NOT_FOUND). "
+			+ "게시판 작성 권한이 없으면 403, 인증 헤더가 없거나 틀리면 401. (COM-PST-08, COM-PST-15, COM-PST-02, COM-PST-04, "
+			+ "COM-BRD-04, COM-BRD-01)")
+	@PatchMapping("/api/v1/posts/{postUuid}")
+	public ApiResponse<UpdatePostResponse> update(
+		@PathVariable UUID postUuid,
+		@Parameter(hidden = true) @CurrentRequester Requester requester,
+		@Valid @RequestBody UpdatePostRequest request) {
+		return ApiResponse.success(postService.update(requester, postUuid, request));
 	}
 }
