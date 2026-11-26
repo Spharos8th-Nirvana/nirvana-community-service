@@ -7,6 +7,7 @@ import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -34,7 +35,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 // 게시글 API. 작성자는 Gateway 인증 헤더의 요청자로 정한다. (COM-BRD-02)
-@Tag(name = "게시글", description = "게시글 작성, 게시글 목록 조회, 게시글 상세 조회, 게시글 수정")
+@Tag(name = "게시글", description = "게시글 작성, 게시글 목록 조회, 게시글 상세 조회, 게시글 수정, 게시글 삭제")
 @RestController
 @RequiredArgsConstructor
 public class PostController {
@@ -107,5 +108,19 @@ public class PostController {
 		@Parameter(hidden = true) @CurrentRequester Requester requester,
 		@Valid @RequestBody UpdatePostRequest request) {
 		return ApiResponse.success(postService.update(requester, postUuid, request));
+	}
+
+	@Operation(
+		summary = "게시글 삭제",
+		description = "글을 지우지 않고 삭제 표시만 한다. 글의 상태(공개·임시저장·예약)는 바꾸지 않는다. 성공하면 204. "
+			+ "이미 삭제된 글을 다시 삭제해도 204다. 삭제한 글은 목록에 나오지 않고 상세는 '볼 수 없는 글'이 된다. "
+			+ "작성자 본인과 ADMIN만 삭제할 수 있고 그 외는 403. 글이 없거나 남의 임시저장·예약 글이면 ADMIN도 404(POST_NOT_FOUND). "
+			+ "인증 헤더가 없거나 틀리면 401. (COM-PST-09, COM-PST-12, COM-PST-15, COM-BRD-04)")
+	@DeleteMapping("/api/v1/posts/{postUuid}")
+	public ResponseEntity<Void> delete(
+		@PathVariable UUID postUuid,
+		@Parameter(hidden = true) @CurrentRequester Requester requester) {
+		postService.delete(requester, postUuid);
+		return ResponseEntity.noContent().build();
 	}
 }

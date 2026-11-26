@@ -19,7 +19,7 @@ import com.nirvana.community.global.exception.ErrorCode;
 
 import lombok.RequiredArgsConstructor;
 
-// 게시글 작성·수정 중 DB 트랜잭션이 필요한 부분(확인과 저장)만 맡는다. PostService가 준비를 끝낸 뒤 부른다.
+// 게시글 작성·수정·삭제 중 DB 트랜잭션이 필요한 부분(확인과 저장)만 맡는다. PostService가 준비를 끝낸 뒤 부른다.
 // 게시판·카테고리를 잠근 채 확인하고 같은 트랜잭션에서 저장해야 확인과 저장 사이에 상태가 바뀌지 않는다.
 // PostService 안의 메서드로 두면 같은 클래스 안 호출이라 @Transactional이 걸리지 않아(self-invocation) 클래스를 나눴다.
 @Component
@@ -54,6 +54,13 @@ public class PostWriter {
 
 		post.update(editor, title, content, categoryId);
 		return post;
+	}
+
+	// 글 조회(없는 글·남의 임시저장·예약 글은 404, ADMIN도 같다) → 삭제 표시. 이미 삭제된 글이어도 같은 결과로 끝난다.
+	// 게시판 운영 여부·작성 권한은 보지 않는다. 삭제는 작성자 본인과 ADMIN이면 할 수 있다. (COM-PST-09, COM-PST-15, 4.5)
+	@Transactional
+	public void delete(UUID postUuid, Requester requester) {
+		getVisiblePost(postUuid, requester).delete(requester);
 	}
 
 	// 요청자에게 글이 있는 것으로 보이지 않으면 없는 글로 본다. (4.5)
