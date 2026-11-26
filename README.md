@@ -24,6 +24,24 @@
 - 기본 local 프로필은 Config Server 없이 시작하며 Swagger UI를 활성화합니다.
 - 다른 프로필에서는 API 문서와 Swagger UI가 기본으로 비활성화됩니다.
 
+### 로컬 DB
+
+local 프로필은 MySQL(업무 데이터)과 MongoDB(게시글 조회수·좋아요 수·댓글 수)에 접속합니다.
+
+| DB | 환경변수 (기본값) |
+| --- | --- |
+| MySQL `nirvana_community` | `DB_HOST`(`localhost`), `DB_PORT`(`13307`), `DB_USERNAME`, `DB_PASSWORD` |
+| MongoDB `nirvana_community` | `MONGO_HOST`(`localhost`), `MONGO_PORT`(`27117`) |
+
+MongoDB는 인증 없는 단일 노드 컨테이너로 띄웁니다.
+
+```bash
+docker run -d --name community-mongo -p 127.0.0.1:27117:27017 -v community-mongo-data:/data/db mongo:8.0
+```
+
+- MongoDB가 꺼져 있어도 앱은 시작됩니다. 집계 수는 0으로 나오고 경고 로그가 남습니다. `/actuator/health`는 MongoDB를 검사하지 않습니다(`management.health.mongodb.enabled: false`).
+- 테스트(`./gradlew build`)는 MongoDB 없이 통과합니다.
+
 ### Config Server 사용
 
 - `SPRING_PROFILES_ACTIVE=config-server`로 설정합니다.
