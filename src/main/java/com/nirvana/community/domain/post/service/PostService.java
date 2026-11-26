@@ -9,9 +9,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.nirvana.community.domain.board.entity.BoardType;
-import com.nirvana.community.domain.board.repository.BoardCategoryRepository;
-import com.nirvana.community.domain.board.repository.BoardTypeRepository;
 import com.nirvana.community.domain.board.service.BoardPermissionChecker;
+import com.nirvana.community.domain.board.service.BoardReader;
 import com.nirvana.community.domain.post.dto.CreatePostRequest;
 import com.nirvana.community.domain.post.dto.CreatePostResponse;
 import com.nirvana.community.domain.post.entity.Post;
@@ -27,8 +26,7 @@ import lombok.RequiredArgsConstructor;
 public class PostService {
 
 	private final PostRepository postRepository;
-	private final BoardTypeRepository boardTypeRepository;
-	private final BoardCategoryRepository boardCategoryRepository;
+	private final BoardReader boardReader;
 	private final BoardPermissionChecker boardPermissionChecker;
 	private final AuthorNameProvider authorNameProvider;
 	private final PostContentSanitizer postContentSanitizer;
@@ -52,11 +50,9 @@ public class PostService {
 		return LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS);
 	}
 
-	// 비활성 게시판은 새 글을 받지 않고(COM-BRD-12), 리뷰 게시판은 일반 글로 쓸 수 없다(COM-PST-11).
+	// 운영 중인 게시판이어야 하고(COM-BRD-12), 리뷰 게시판은 일반 글로 쓸 수 없다(COM-PST-11).
 	private BoardType getWritableBoardType(String boardCode) {
-		BoardType boardType = boardTypeRepository.findByCode(boardCode)
-			.filter(BoardType::isActive)
-			.orElseThrow(() -> new BusinessException(ErrorCode.BOARD_NOT_FOUND));
+		BoardType boardType = boardReader.getActiveBoardType(boardCode);
 		if (boardType.isReview()) {
 			throw new BusinessException(ErrorCode.REVIEW_BOARD_WRITE_NOT_ALLOWED);
 		}
@@ -73,7 +69,7 @@ public class PostService {
 		if (categoryUuid == null) {
 			throw new BusinessException(ErrorCode.CATEGORY_REQUIRED);
 		}
-		return boardCategoryRepository.findByUuid(categoryUuid)
+		return boardReader.findCategory(categoryUuid)
 			.filter(category -> category.isUsableIn(boardType))
 			.orElseThrow(() -> new BusinessException(ErrorCode.INVALID_CATEGORY))
 			.getId();
