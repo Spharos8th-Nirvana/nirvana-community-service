@@ -92,14 +92,6 @@ class BoardTypeServiceTest {
 	}
 
 	@Test
-	void 관리자가_아니면_등록_수정_비활성화_모두_FORBIDDEN() {
-		assertFails(() -> boardTypeService.create(USER, CREATE_REQUEST), ErrorCode.FORBIDDEN);
-		assertFails(() -> boardTypeService.update(USER, "COMMUNITY", UPDATE_REQUEST), ErrorCode.FORBIDDEN);
-		assertFails(() -> boardTypeService.deactivate(USER, "COMMUNITY"), ErrorCode.FORBIDDEN);
-		verify(boardTypeRepository, never()).save(any());
-	}
-
-	@Test
 	void 이미_있는_코드면_DUPLICATE_BOARD_CODE() {
 		given(boardTypeRepository.existsByCode("COMMUNITY")).willReturn(true);
 

@@ -20,7 +20,6 @@ import com.nirvana.community.domain.board.entity.BoardRole;
 import com.nirvana.community.domain.board.entity.BoardType;
 import com.nirvana.community.domain.board.repository.BoardPermissionRepository;
 import com.nirvana.community.domain.board.repository.BoardTypeRepository;
-import com.nirvana.community.global.auth.AccountType;
 import com.nirvana.community.global.auth.Requester;
 import com.nirvana.community.global.exception.BusinessException;
 import com.nirvana.community.global.exception.ErrorCode;
@@ -47,7 +46,6 @@ public class BoardTypeService {
 	// code는 중복될 수 없다. (COM-BRD-11)
 	@Transactional
 	public BoardTypeResponse create(Requester requester, CreateBoardTypeRequest request) {
-		validateAdmin(requester);
 		if (boardTypeRepository.existsByCode(request.code())) {
 			throw new BusinessException(ErrorCode.DUPLICATE_BOARD_CODE);
 		}
@@ -60,7 +58,6 @@ public class BoardTypeService {
 
 	@Transactional
 	public BoardTypeResponse update(Requester requester, String boardCode, UpdateBoardTypeRequest request) {
-		validateAdmin(requester);
 		BoardType boardType = findByCode(boardCode);
 		boardType.update(request.name(), request.toFeatures(), requester.accountUuid());
 		return BoardTypeResponse.from(boardType, findPermission(boardType, requester));
@@ -69,14 +66,7 @@ public class BoardTypeService {
 	// 삭제하지 않고 끈다. (COM-BRD-12)
 	@Transactional
 	public void deactivate(Requester requester, String boardCode) {
-		validateAdmin(requester);
 		findByCode(boardCode).deactivate(requester.accountUuid());
-	}
-
-	private void validateAdmin(Requester requester) {
-		if (requester.accountType() != AccountType.ADMIN) {
-			throw new BusinessException(ErrorCode.FORBIDDEN);
-		}
 	}
 
 	// 게시판마다 따로 조회하지 않도록 그 역할의 권한을 한 번에 읽는다.

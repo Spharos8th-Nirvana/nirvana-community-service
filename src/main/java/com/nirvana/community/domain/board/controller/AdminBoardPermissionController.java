@@ -30,9 +30,8 @@ public class AdminBoardPermissionController {
 
 	@GetMapping
 	public ApiResponse<BoardPermissionsResponse> getPermissions(
-		@PathVariable String boardCode,
-		@Parameter(hidden = true) @CurrentRequester Requester requester) {
-		return ApiResponse.success(boardPermissionService.getPermissions(requester, boardCode));
+		@PathVariable String boardCode) {
+		return ApiResponse.success(boardPermissionService.getPermissions(boardCode));
 	}
 
 	@PutMapping

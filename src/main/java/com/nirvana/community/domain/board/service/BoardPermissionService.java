@@ -16,7 +16,6 @@ import com.nirvana.community.domain.board.entity.BoardRole;
 import com.nirvana.community.domain.board.entity.BoardType;
 import com.nirvana.community.domain.board.repository.BoardPermissionRepository;
 import com.nirvana.community.domain.board.repository.BoardTypeRepository;
-import com.nirvana.community.global.auth.AccountType;
 import com.nirvana.community.global.auth.Requester;
 import com.nirvana.community.global.exception.BusinessException;
 import com.nirvana.community.global.exception.ErrorCode;
@@ -32,8 +31,7 @@ public class BoardPermissionService {
 	private final BoardPermissionRepository boardPermissionRepository;
 
 	@Transactional(readOnly = true)
-	public BoardPermissionsResponse getPermissions(Requester requester, String boardCode) {
-		validateAdmin(requester);
+	public BoardPermissionsResponse getPermissions(String boardCode) {
 		return toResponse(getBoardType(boardCode));
 	}
 
@@ -41,7 +39,6 @@ public class BoardPermissionService {
 	@Transactional
 	public BoardPermissionsResponse updatePermissions(Requester requester, String boardCode,
 		UpdateBoardPermissionsRequest request) {
-		validateAdmin(requester);
 		BoardType boardType = getBoardType(boardCode);
 		request.permissions().forEach(permission ->
 			savePermission(boardType.getId(), permission, requester.accountUuid()));
@@ -61,12 +58,6 @@ public class BoardPermissionService {
 			boardPermissionRepository.findAllByBoardTypeId(boardType.getId()).stream()
 				.collect(Collectors.toMap(BoardPermission::getRole, Function.identity()));
 		return BoardPermissionsResponse.of(boardType.getCode(), permissionsByRole);
-	}
-
-	private void validateAdmin(Requester requester) {
-		if (requester.accountType() != AccountType.ADMIN) {
-			throw new BusinessException(ErrorCode.FORBIDDEN);
-		}
 	}
 
 	private BoardType getBoardType(String boardCode) {
