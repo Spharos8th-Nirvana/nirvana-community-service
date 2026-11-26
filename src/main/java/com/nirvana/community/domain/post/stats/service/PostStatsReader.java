@@ -25,13 +25,15 @@ public class PostStatsReader {
 
 	private final PostStatsRepository postStatsRepository;
 
+	// 단건 조회: 글 하나의 집계 수를 읽는다. 게시글 상세에서 쓴다. 문서가 없으면 모두 0이다.
 	public PostCounts getCounts(UUID postUuid) {
 		return postStatsRepository.findById(postUuid.toString())
 			.map(PostCounts::from)
 			.orElse(PostCounts.ZERO);
 	}
 
-	// 요청한 글 UUID마다 값이 하나씩 들어 있다(요청 순서 유지). 조회는 한 번의 쿼리($in)로 한다.
+	// 다건 조회: 글 여러 개의 집계 수를 한 번의 쿼리($in)로 읽는다. 게시글 목록에서 쓴다.
+	// 요청한 글 UUID마다 값이 하나씩 들어 있고(요청 순서 유지), 문서가 없는 글은 모두 0이다.
 	public Map<UUID, PostCounts> getCountsByPostUuids(Collection<UUID> postUuids) {
 		Set<UUID> uniquePostUuids = new LinkedHashSet<>(postUuids);
 		if (uniquePostUuids.isEmpty()) {
@@ -46,6 +48,7 @@ public class PostStatsReader {
 		return countsByPostUuid;
 	}
 
+	// 다건 조회: 글 UUID 여러 개로 문서를 한 번에 찾아 글 UUID별 Map으로 만든다.
 	private Map<String, PostStats> findStatsByPostUuid(Set<UUID> postUuids) {
 		List<String> ids = postUuids.stream().map(UUID::toString).toList();
 		return postStatsRepository.findAllById(ids).stream()
