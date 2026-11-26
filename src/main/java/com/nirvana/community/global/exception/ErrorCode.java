@@ -19,6 +19,10 @@ public enum ErrorCode {
 	DUPLICATE_BOARD_CODE(HttpStatus.CONFLICT, "이미 있는 게시판 코드입니다."),
 	CATEGORY_NOT_FOUND(HttpStatus.NOT_FOUND, "카테고리를 찾을 수 없습니다."),
 	DUPLICATE_CATEGORY_NAME(HttpStatus.CONFLICT, "이 게시판에 이미 있는 카테고리 이름입니다."),
+	REVIEW_BOARD_WRITE_NOT_ALLOWED(HttpStatus.BAD_REQUEST, "리뷰 게시판에는 일반 글을 쓸 수 없습니다."),
+	CATEGORY_REQUIRED(HttpStatus.BAD_REQUEST, "카테고리를 선택해주세요."),
+	CATEGORY_NOT_ALLOWED(HttpStatus.BAD_REQUEST, "카테고리를 쓰지 않는 게시판입니다."),
+	INVALID_CATEGORY(HttpStatus.BAD_REQUEST, "이 게시판에서 고를 수 있는 카테고리가 아닙니다."),
 	INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "서버 내부 오류가 발생했습니다.");
 
 	private final HttpStatus status;
