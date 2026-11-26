@@ -39,7 +39,7 @@ MongoDB는 인증 없는 단일 노드 컨테이너로 띄웁니다.
 docker run -d --name community-mongo -p 127.0.0.1:27117:27017 -v community-mongo-data:/data/db mongo:8.0
 ```
 
-- MongoDB가 꺼져 있어도 앱은 시작됩니다. 집계 수를 읽을 때 오류가 나고 `/actuator/health`는 `mongo`가 `DOWN`이라 전체도 `DOWN`(503)입니다.
+- MongoDB가 꺼져 있어도 앱은 시작됩니다. 집계 수는 0으로 나오고 경고 로그가 남습니다. `/actuator/health`는 MongoDB를 검사하지 않습니다(`management.health.mongodb.enabled: false`).
 - 테스트(`./gradlew build`)는 MongoDB 없이 통과합니다.
 
 ### Config Server 사용
