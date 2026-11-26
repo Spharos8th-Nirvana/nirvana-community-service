@@ -1,6 +1,7 @@
 package com.nirvana.community.domain.post.service;
 
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.UUID;
 
 import org.jspecify.annotations.Nullable;
@@ -39,9 +40,14 @@ public class PostService {
 		Long categoryId = resolveCategoryId(boardType, request.categoryUuid());
 
 		Post post = Post.create(boardType.getId(), categoryId, requester,
-			authorNameProvider.getAuthorName(requester), request.title(), request.content(), LocalDateTime.now());
+			authorNameProvider.getAuthorName(requester), request.title(), request.content(), publishedNow());
 		postRepository.save(post);
 		return CreatePostResponse.from(post);
+	}
+
+	// posts.scheduledAt은 DATETIME(초 단위)이라 MySQL이 소수 초를 반올림한다. 응답 값과 저장 값이 같도록 초 단위로 자른다.
+	private LocalDateTime publishedNow() {
+		return LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS);
 	}
 
 	// 비활성 게시판은 새 글을 받지 않고(COM-BRD-12), 리뷰 게시판은 일반 글로 쓸 수 없다(COM-PST-11).
