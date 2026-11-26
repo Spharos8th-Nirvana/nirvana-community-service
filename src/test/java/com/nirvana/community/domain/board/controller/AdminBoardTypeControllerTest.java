@@ -5,12 +5,15 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.willThrow;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.http.MediaType;
@@ -31,7 +34,7 @@ import com.nirvana.community.global.exception.ErrorCode;
 class AdminBoardTypeControllerTest {
 
 	private static final String URL = "/api/v1/admin/boards";
-	private static final String ADMIN_UUID = "3f2504e0-4f89-41d3-9a0c-0305e82c3301";
+	private static final String ACCOUNT_UUID = "3f2504e0-4f89-41d3-9a0c-0305e82c3301";
 	private static final String VALID_BODY = """
 		{
 		  "code": "COMMUNITY", "name": "자유게시판",
@@ -40,7 +43,7 @@ class AdminBoardTypeControllerTest {
 		}
 		""";
 	private static final BoardTypeResponse RESPONSE =
-		new BoardTypeResponse("COMMUNITY", "자유게시판", false, true, true, true, false, true, false, 5);
+		new BoardTypeResponse("COMMUNITY", "자유게시판", false, true, true, true, false, true, false, 5, true, true);
 
 	@Autowired
 	private MockMvc mockMvc;
@@ -79,25 +82,33 @@ class AdminBoardTypeControllerTest {
 			.andExpect(jsonPath("$.error.details[0].field").value("allowComment"));
 	}
 
-	@Test
-	void 관리자가_아니면_403() throws Exception {
-		given(boardTypeService.create(any(Requester.class), any(CreateBoardTypeRequest.class)))
-			.willThrow(new BusinessException(ErrorCode.FORBIDDEN));
+	// @AdminOnly 인터셉터가 Service 호출 전에 막는다. Service는 가짜라 인터셉터가 빠지면 이 테스트가 실패해야 한다.
+	@ParameterizedTest
+	@ValueSource(strings = {"USER", "OPERATOR"})
+	void 관리자가_아니면_등록_수정_비활성화_모두_403이고_Service를_부르지_않는다(String accountType) throws Exception {
+		expectForbidden(as(accountType, post(URL)).content(VALID_BODY));
+		expectForbidden(as(accountType, patch(URL + "/COMMUNITY")).content(VALID_BODY));
+		expectForbidden(as(accountType, post(URL + "/COMMUNITY/deactivate")));
 
-		mockMvc.perform(post(URL)
-				.header("X-User-Id", ADMIN_UUID)
-				.header("X-Account-Type", "USER")
-				.contentType(MediaType.APPLICATION_JSON)
-				.content(VALID_BODY))
-			.andExpect(status().isForbidden())
-			.andExpect(jsonPath("$.error.code").value("FORBIDDEN"));
+		verifyNoInteractions(boardTypeService);
 	}
 
 	@Test
-	void 인증_헤더가_없으면_401() throws Exception {
+	void 인증_헤더가_없으면_401이고_Service를_부르지_않는다() throws Exception {
 		mockMvc.perform(post(URL).contentType(MediaType.APPLICATION_JSON).content(VALID_BODY))
 			.andExpect(status().isUnauthorized())
 			.andExpect(jsonPath("$.error.code").value("UNAUTHORIZED"));
+
+		verifyNoInteractions(boardTypeService);
+	}
+
+	@Test
+	void 역할_헤더가_잘못되면_401이고_Service를_부르지_않는다() throws Exception {
+		mockMvc.perform(as("SUPER_ADMIN", post(URL + "/COMMUNITY/deactivate")))
+			.andExpect(status().isUnauthorized())
+			.andExpect(jsonPath("$.error.code").value("UNAUTHORIZED"));
+
+		verifyNoInteractions(boardTypeService);
 	}
 
 	@Test
@@ -156,10 +167,20 @@ class AdminBoardTypeControllerTest {
 		verify(boardTypeService).deactivate(any(Requester.class), eq("COMMUNITY"));
 	}
 
+	private void expectForbidden(MockHttpServletRequestBuilder request) throws Exception {
+		mockMvc.perform(request)
+			.andExpect(status().isForbidden())
+			.andExpect(jsonPath("$.error.code").value("FORBIDDEN"));
+	}
+
 	private MockHttpServletRequestBuilder asAdmin(MockHttpServletRequestBuilder request) {
+		return as("ADMIN", request);
+	}
+
+	private MockHttpServletRequestBuilder as(String accountType, MockHttpServletRequestBuilder request) {
 		return request
-			.header("X-User-Id", ADMIN_UUID)
-			.header("X-Account-Type", "ADMIN")
+			.header("X-User-Id", ACCOUNT_UUID)
+			.header("X-Account-Type", accountType)
 			.contentType(MediaType.APPLICATION_JSON);
 	}
 }
