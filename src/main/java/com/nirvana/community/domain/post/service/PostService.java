@@ -31,16 +31,18 @@ public class PostService {
 	private final BoardCategoryRepository boardCategoryRepository;
 	private final BoardPermissionChecker boardPermissionChecker;
 	private final AuthorNameProvider authorNameProvider;
+	private final PostContentSanitizer postContentSanitizer;
 
-	// 게시판 확인 → 작성 권한 확인 → 카테고리 확인 → 글 생성 → 저장. (COM-PST-01)
+	// 본문 정제 → 게시판 확인 → 작성 권한 확인 → 카테고리 확인 → 글 생성 → 저장. (COM-PST-01, COM-PST-04)
 	@Transactional
 	public CreatePostResponse create(Requester requester, String boardCode, CreatePostRequest request) {
+		String content = postContentSanitizer.sanitize(request.content());
 		BoardType boardType = getWritableBoardType(boardCode);
 		boardPermissionChecker.validateWritable(boardType.getId(), requester);
 		Long categoryId = resolveCategoryId(boardType, request.categoryUuid());
 
 		Post post = Post.create(boardType.getId(), categoryId, requester,
-			authorNameProvider.getAuthorName(requester), request.title(), request.content(), publishedNow());
+			authorNameProvider.getAuthorName(requester), request.title(), content, publishedNow());
 		postRepository.save(post);
 		return CreatePostResponse.from(post);
 	}
