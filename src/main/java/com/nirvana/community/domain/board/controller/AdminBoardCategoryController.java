@@ -17,6 +17,7 @@ import com.nirvana.community.domain.board.dto.AdminBoardCategoryResponse;
 import com.nirvana.community.domain.board.dto.CreateBoardCategoryRequest;
 import com.nirvana.community.domain.board.dto.UpdateBoardCategoryRequest;
 import com.nirvana.community.domain.board.service.BoardCategoryService;
+import com.nirvana.community.global.auth.AdminOnly;
 import com.nirvana.community.global.auth.CurrentRequester;
 import com.nirvana.community.global.auth.Requester;
 import com.nirvana.community.global.response.ApiResponse;
@@ -27,9 +28,10 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
-// 플랫폼 관리자용 카테고리 관리. ADMIN인지는 Service가 확인한다.
+// 플랫폼 관리자용 카테고리 관리. ADMIN인지는 @AdminOnly(인터셉터)가 Service 호출 전에 확인한다.
 // 등록·목록은 게시판 아래에 두고, 카테고리 하나를 다루는 API는 categoryUuid로 가리킨다.
 @Tag(name = "게시판 카테고리 (관리자)", description = "플랫폼 관리자용 게시판 카테고리 관리")
+@AdminOnly
 @RestController
 @RequestMapping("/api/v1/admin")
 @RequiredArgsConstructor
