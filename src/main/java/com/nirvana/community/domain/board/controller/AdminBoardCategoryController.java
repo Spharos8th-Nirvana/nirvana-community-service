@@ -44,10 +44,8 @@ public class AdminBoardCategoryController {
 		description = "보관된 카테고리까지 포함해 sortOrder 오름차순으로 조회한다. 응답의 active로 사용 여부를 구분한다. "
 			+ "게시판이 없으면 404. ADMIN만 호출 가능, 아니면 403. (COM-BRD-33)")
 	@GetMapping("/boards/{boardCode}/categories")
-	public ApiResponse<List<AdminBoardCategoryResponse>> getCategories(
-		@PathVariable String boardCode,
-		@Parameter(hidden = true) @CurrentRequester Requester requester) {
-		return ApiResponse.success(boardCategoryService.getAllCategories(requester, boardCode));
+	public ApiResponse<List<AdminBoardCategoryResponse>> getCategories(@PathVariable String boardCode) {
+		return ApiResponse.success(boardCategoryService.getAllCategories(boardCode));
 	}
 
 	@Operation(

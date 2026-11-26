@@ -43,7 +43,7 @@ public class BoardCategoryService {
 
 	// 보관된 카테고리까지 준다. 플랫폼 관리자만 본다. (COM-BRD-33)
 	@Transactional(readOnly = true)
-	public List<AdminBoardCategoryResponse> getAllCategories(Requester requester, String boardCode) {
+	public List<AdminBoardCategoryResponse> getAllCategories(String boardCode) {
 		BoardType boardType = getBoardType(boardCode);
 		return boardCategoryRepository.findAllByTypeIdOrderBySortOrderAscIdAsc(boardType.getId()).stream()
 			.map(AdminBoardCategoryResponse::from)
