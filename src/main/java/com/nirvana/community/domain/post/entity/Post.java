@@ -112,4 +112,35 @@ public class Post extends BaseTimeEntity {
 		String title, String content, LocalDateTime publishedAt) {
 		return new Post(typeId, categoryId, author, authorName, title, content, publishedAt);
 	}
+
+	// 이 요청자에게 글이 있는 것으로 보이는지. false면 없는 글(404)로 응답한다. (4.5)
+	// 임시저장·예약 글은 아직 공개된 적이 없어 작성자 본인에게만 있다. ADMIN도 남의 것은 못 본다.
+	// 숨김·삭제보다 먼저 본다: 남의 임시저장 글은 삭제·숨김이어도 "볼 수 없는 글"이 아니라 404여야 글이 있다는 것조차 새지 않는다.
+	public boolean isVisibleTo(@Nullable Requester requester) {
+		return status == PostStatus.PUBLISHED || isWrittenBy(requester);
+	}
+
+	// 본문까지 볼 수 있는지. false면 본문 없이 "볼 수 없는 글"로 응답한다. (COM-PST-24, COM-PST-09, 4.5)
+	// 삭제 글은 작성자·ADMIN을 포함해 아무도 못 본다(삭제가 숨김보다 우선).
+	// 숨김 글은 ADMIN과 작성자 본인만 본다. 작성자는 자기 글이 왜 안 보이는지 확인할 수 있어야 한다.
+	public boolean isContentViewableBy(@Nullable Requester requester) {
+		if (deleted) {
+			return false;
+		}
+		if (hidden) {
+			return isAdmin(requester) || isWrittenBy(requester);
+		}
+		return true;
+	}
+
+	// 요청자가 이 글의 작성자인지. 비회원(null)은 작성자가 아니다. 다른 계정 종류끼리 UUID가 겹쳐도 구분되게 종류도 본다.
+	public boolean isWrittenBy(@Nullable Requester requester) {
+		return requester != null
+			&& authorUuid.equals(requester.accountUuid())
+			&& authorType == requester.accountType();
+	}
+
+	private boolean isAdmin(@Nullable Requester requester) {
+		return requester != null && requester.accountType() == AccountType.ADMIN;
+	}
 }
