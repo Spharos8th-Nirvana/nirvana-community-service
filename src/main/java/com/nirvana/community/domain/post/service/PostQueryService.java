@@ -13,7 +13,10 @@ import org.springframework.transaction.annotation.Transactional;
 import com.nirvana.community.domain.board.entity.BoardType;
 import com.nirvana.community.domain.board.service.BoardPermissionChecker;
 import com.nirvana.community.domain.board.service.BoardReader;
+import com.nirvana.community.domain.board.entity.BoardCategory;
+import com.nirvana.community.domain.post.dto.PostDetailRow;
 import com.nirvana.community.domain.post.dto.PostSummaryRow;
+import com.nirvana.community.domain.post.entity.Post;
 import com.nirvana.community.domain.post.repository.PostRepository;
 import com.nirvana.community.global.auth.Requester;
 import com.nirvana.community.global.exception.BusinessException;
@@ -44,6 +47,24 @@ public class PostQueryService {
 		Long categoryId = resolveCategoryFilter(boardType, categoryUuid);
 		PageRequest latestFirst = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), LATEST_FIRST);
 		return postRepository.findVisibleSummaries(boardType.getId(), categoryId, latestFirst);
+	}
+
+	// 단건 조회: 게시글 상세. 글 조회(없는 글·남의 임시저장·예약 글은 404) → 게시판 확인 → 열람 권한 확인 → 카테고리.
+	// 숨김·삭제 글도 여기서는 돌려준다. 본문을 보여 줄지는 PostService가 Post에 물어 정한다. (COM-PST-23, COM-BRD-01, 4.5)
+	public PostDetailRow getVisiblePost(UUID postUuid, @Nullable Requester requester) {
+		Post post = postRepository.findByUuid(postUuid)
+			.filter(found -> found.isVisibleTo(requester))
+			.orElseThrow(() -> new BusinessException(ErrorCode.POST_NOT_FOUND));
+		BoardType boardType = boardReader.getActiveBoardTypeById(post.getTypeId());
+		boardPermissionChecker.validateReadable(boardType.getId(), requester);
+		return new PostDetailRow(post, boardType.getCode(), findCategoryOf(post));
+	}
+
+	private @Nullable BoardCategory findCategoryOf(Post post) {
+		if (post.getCategoryId() == null) {
+			return null;
+		}
+		return boardReader.findCategoryById(post.getCategoryId()).orElse(null);
 	}
 
 	// 카테고리를 주지 않으면 거르지 않는다. 없는 것, 다른 게시판 것은 INVALID_CATEGORY(400)로 거절한다.

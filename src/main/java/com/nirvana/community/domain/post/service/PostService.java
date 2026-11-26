@@ -14,6 +14,8 @@ import com.nirvana.community.domain.board.entity.BoardCategory;
 import com.nirvana.community.domain.board.service.BoardReader;
 import com.nirvana.community.domain.post.dto.CreatePostRequest;
 import com.nirvana.community.domain.post.dto.CreatePostResponse;
+import com.nirvana.community.domain.post.dto.PostDetailResponse;
+import com.nirvana.community.domain.post.dto.PostDetailRow;
 import com.nirvana.community.domain.post.dto.PostSummaryResponse;
 import com.nirvana.community.domain.post.dto.PostSummaryRow;
 import com.nirvana.community.domain.post.entity.Post;
@@ -57,6 +59,18 @@ public class PostService {
 		return PageResponse.from(posts.map(post ->
 			PostSummaryResponse.of(post, categoryOf(post, categories),
 				counts.getOrDefault(post.postUuid(), PostCounts.ZERO))));
+	}
+
+	// 단건 조회: 게시글 상세. (트랜잭션) 글·게시판·권한·카테고리 → 본문을 볼 수 있는지 → 집계 수 → 응답. (COM-PST-23, COM-PST-24)
+	// 숨김·삭제로 볼 수 없는 글은 집계 수도 가리므로 MongoDB를 읽지 않는다.
+	// 집계 수는 트랜잭션이 끝난 뒤 읽는다. MongoDB가 늦거나 꺼져도 DB 커넥션을 붙잡지 않는다. 조회수는 올리지 않는다.
+	public PostDetailResponse getPost(UUID postUuid, @Nullable Requester requester) {
+		PostDetailRow row = postQueryService.getVisiblePost(postUuid, requester);
+		if (!row.post().isContentViewableBy(requester)) {
+			return PostDetailResponse.unviewable(postUuid);
+		}
+		PostCounts counts = postStatsReader.getCounts(postUuid);
+		return PostDetailResponse.of(row, counts, requester);
 	}
 
 	// 카테고리 없는 글은 null. 불변 Map(Map.of)은 get(null)에서 예외를 던지므로 먼저 거른다.

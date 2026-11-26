@@ -54,6 +54,19 @@ public class BoardReader {
 			.orElseThrow(() -> new BusinessException(ErrorCode.BOARD_NOT_FOUND));
 	}
 
+	// 단건 조회: 게시글 상세에서 글이 속한 게시판을 읽는다. 잠그지 않는다.
+	// 비활성 게시판은 목록과 같이 없는 게시판(404)으로 본다. 목록에서 막힌 게시판의 글이 상세로만 보이지 않게 한다. (COM-BRD-12)
+	public BoardType getActiveBoardTypeById(Long boardTypeId) {
+		return boardTypeRepository.findById(boardTypeId)
+			.filter(BoardType::isActive)
+			.orElseThrow(() -> new BusinessException(ErrorCode.BOARD_NOT_FOUND));
+	}
+
+	// 단건 조회: 게시글 상세에서 글의 카테고리를 읽는다. 잠그지 않는다. 보관된 카테고리도 기존 글에는 그대로 보인다. (COM-BRD-22)
+	public Optional<BoardCategory> findCategoryById(Long categoryId) {
+		return boardCategoryRepository.findById(categoryId);
+	}
+
 	// 단건 조회: 게시글 목록의 카테고리 필터에서 쓴다. 잠그지 않고 읽는다. 걸러 볼 수 있는지는 부르는 쪽이 판단한다.
 	public Optional<BoardCategory> findCategory(UUID categoryUuid) {
 		return boardCategoryRepository.findByUuid(categoryUuid);

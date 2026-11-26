@@ -1,5 +1,8 @@
 package com.nirvana.community.domain.post.repository;
 
+import java.util.Optional;
+import java.util.UUID;
+
 import org.jspecify.annotations.Nullable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -11,6 +14,9 @@ import com.nirvana.community.domain.post.dto.PostSummaryRow;
 import com.nirvana.community.domain.post.entity.Post;
 
 public interface PostRepository extends JpaRepository<Post, Long> {
+
+	// 단건 조회: 게시글 상세에서 쓴다. 상태·숨김·삭제와 관계없이 읽는다. 누가 볼 수 있는지는 Post가 판단한다. (COM-PST-23, 4.5)
+	Optional<Post> findByUuid(UUID uuid);
 
 	// 다건 조회: 게시판 글 목록에서 쓴다. 공개 상태이고 숨김·삭제되지 않은 글만 읽는다. (COM-PST-20, 4.5, COM-NFR-05)
 	// categoryId가 null이면 카테고리로 거르지 않는다. 정렬은 부르는 쪽이 Pageable로 넘긴다.
