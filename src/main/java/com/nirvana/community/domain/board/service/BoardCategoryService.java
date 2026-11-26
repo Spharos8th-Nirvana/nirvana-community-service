@@ -15,7 +15,6 @@ import com.nirvana.community.domain.board.entity.BoardCategory;
 import com.nirvana.community.domain.board.entity.BoardType;
 import com.nirvana.community.domain.board.repository.BoardCategoryRepository;
 import com.nirvana.community.domain.board.repository.BoardTypeRepository;
-import com.nirvana.community.global.auth.AccountType;
 import com.nirvana.community.global.auth.Requester;
 import com.nirvana.community.global.exception.BusinessException;
 import com.nirvana.community.global.exception.ErrorCode;
@@ -45,7 +44,6 @@ public class BoardCategoryService {
 	// 보관된 카테고리까지 준다. 플랫폼 관리자만 본다. (COM-BRD-33)
 	@Transactional(readOnly = true)
 	public List<AdminBoardCategoryResponse> getAllCategories(Requester requester, String boardCode) {
-		validateAdmin(requester);
 		BoardType boardType = getBoardType(boardCode);
 		return boardCategoryRepository.findAllByTypeIdOrderBySortOrderAscIdAsc(boardType.getId()).stream()
 			.map(AdminBoardCategoryResponse::from)
@@ -56,7 +54,6 @@ public class BoardCategoryService {
 	@Transactional
 	public AdminBoardCategoryResponse create(Requester requester, String boardCode,
 		CreateBoardCategoryRequest request) {
-		validateAdmin(requester);
 		BoardType boardType = getBoardType(boardCode);
 		if (boardCategoryRepository.existsByTypeIdAndName(boardType.getId(), request.name())) {
 			throw new BusinessException(ErrorCode.DUPLICATE_CATEGORY_NAME);
@@ -71,7 +68,6 @@ public class BoardCategoryService {
 	@Transactional
 	public AdminBoardCategoryResponse update(Requester requester, UUID categoryUuid,
 		UpdateBoardCategoryRequest request) {
-		validateAdmin(requester);
 		BoardCategory category = getCategory(categoryUuid);
 		if (boardCategoryRepository.existsByTypeIdAndNameAndIdNot(
 			category.getTypeId(), request.name(), category.getId())) {
@@ -85,14 +81,12 @@ public class BoardCategoryService {
 	// 삭제하지 않고 보관한다. (COM-BRD-22)
 	@Transactional
 	public void archive(Requester requester, UUID categoryUuid) {
-		validateAdmin(requester);
 		getCategory(categoryUuid).archive(requester.accountUuid());
 	}
 
 	// 보관한 카테고리를 다시 쓴다. (COM-BRD-33)
 	@Transactional
 	public void restore(Requester requester, UUID categoryUuid) {
-		validateAdmin(requester);
 		getCategory(categoryUuid).restore(requester.accountUuid());
 	}
 
@@ -103,12 +97,6 @@ public class BoardCategoryService {
 			boardCategoryRepository.saveAndFlush(category);
 		} catch (DataIntegrityViolationException exception) {
 			throw new BusinessException(ErrorCode.DUPLICATE_CATEGORY_NAME);
-		}
-	}
-
-	private void validateAdmin(Requester requester) {
-		if (requester.accountType() != AccountType.ADMIN) {
-			throw new BusinessException(ErrorCode.FORBIDDEN);
 		}
 	}
 
