@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 import java.util.List;
@@ -18,12 +19,16 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import com.nirvana.community.domain.board.dto.BoardTypeResponse;
 import com.nirvana.community.domain.board.dto.CreateBoardTypeRequest;
 import com.nirvana.community.domain.board.dto.UpdateBoardTypeRequest;
 import com.nirvana.community.domain.board.entity.BoardFeatures;
+import com.nirvana.community.domain.board.entity.BoardPermission;
+import com.nirvana.community.domain.board.entity.BoardRole;
 import com.nirvana.community.domain.board.entity.BoardType;
+import com.nirvana.community.domain.board.repository.BoardPermissionRepository;
 import com.nirvana.community.domain.board.repository.BoardTypeRepository;
 import com.nirvana.community.global.auth.AccountType;
 import com.nirvana.community.global.auth.Requester;
@@ -43,6 +48,8 @@ class BoardTypeServiceTest {
 
 	@Mock
 	private BoardTypeRepository boardTypeRepository;
+	@Mock
+	private BoardPermissionRepository boardPermissionRepository;
 	@InjectMocks
 	private BoardTypeService boardTypeService;
 
@@ -50,7 +57,7 @@ class BoardTypeServiceTest {
 	void 운영_중인_게시판_목록을_응답으로_바꿔_준다() {
 		given(boardTypeRepository.findAllByActiveTrueOrderByIdAsc()).willReturn(List.of(savedBoardType()));
 
-		List<BoardTypeResponse> responses = boardTypeService.getActiveBoardTypes();
+		List<BoardTypeResponse> responses = boardTypeService.getActiveBoardTypes(null);
 
 		assertThat(responses).hasSize(1);
 		assertThat(responses.get(0).code()).isEqualTo("COMMUNITY");
@@ -58,11 +65,30 @@ class BoardTypeServiceTest {
 	}
 
 	@Test
-	void 관리자가_아니면_등록_수정_비활성화_모두_FORBIDDEN() {
-		assertFails(() -> boardTypeService.create(USER, CREATE_REQUEST), ErrorCode.FORBIDDEN);
-		assertFails(() -> boardTypeService.update(USER, "COMMUNITY", UPDATE_REQUEST), ErrorCode.FORBIDDEN);
-		assertFails(() -> boardTypeService.deactivate(USER, "COMMUNITY"), ErrorCode.FORBIDDEN);
-		verify(boardTypeRepository, never()).save(any());
+	void 목록에는_요청자_역할의_권한을_한_번에_읽어_붙이고_행이_없는_게시판은_둘_다_false() {
+		BoardType community = savedBoardType(1L);
+		BoardType notice = savedBoardType(2L);
+		given(boardTypeRepository.findAllByActiveTrueOrderByIdAsc()).willReturn(List.of(community, notice));
+		given(boardPermissionRepository.findAllByRole(BoardRole.USER)).willReturn(List.of(
+			BoardPermission.create(1L, BoardRole.USER, true, true, UUID.randomUUID())));
+
+		List<BoardTypeResponse> responses = boardTypeService.getActiveBoardTypes(USER);
+
+		assertThat(responses).extracting(BoardTypeResponse::canRead).containsExactly(true, false);
+		assertThat(responses).extracting(BoardTypeResponse::canWrite).containsExactly(true, false);
+		verify(boardPermissionRepository, times(1)).findAllByRole(BoardRole.USER);
+	}
+
+	@Test
+	void 비회원의_목록은_GUEST_권한으로_계산한다() {
+		given(boardTypeRepository.findAllByActiveTrueOrderByIdAsc()).willReturn(List.of(savedBoardType(1L)));
+		given(boardPermissionRepository.findAllByRole(BoardRole.GUEST)).willReturn(List.of(
+			BoardPermission.create(1L, BoardRole.GUEST, true, false, UUID.randomUUID())));
+
+		List<BoardTypeResponse> responses = boardTypeService.getActiveBoardTypes(null);
+
+		assertThat(responses.get(0).canRead()).isTrue();
+		assertThat(responses.get(0).canWrite()).isFalse();
 	}
 
 	@Test
@@ -116,6 +142,12 @@ class BoardTypeServiceTest {
 
 		assertThat(boardType.isActive()).isFalse();
 		assertThat(boardType.getUpdatedBy()).isEqualTo(ADMIN.accountUuid());
+	}
+
+	private BoardType savedBoardType(Long id) {
+		BoardType boardType = savedBoardType();
+		ReflectionTestUtils.setField(boardType, "id", id);
+		return boardType;
 	}
 
 	private BoardType savedBoardType() {
