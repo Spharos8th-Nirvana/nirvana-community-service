@@ -83,4 +83,9 @@ public class BoardCategory extends BaseTimeEntity {
 		this.active = true;
 		this.updatedBy = updatedBy;
 	}
+
+	// 그 게시판의 사용 중인 카테고리인지 확인한다. 보관된 카테고리로는 새 글을 쓸 수 없다. (COM-PST-02, COM-BRD-22)
+	public boolean isUsableIn(BoardType boardType) {
+		return active && typeId.equals(boardType.getId());
+	}
 }

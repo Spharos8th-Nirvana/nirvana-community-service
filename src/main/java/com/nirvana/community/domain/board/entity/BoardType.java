@@ -18,6 +18,9 @@ import java.util.UUID;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class BoardType extends BaseTimeEntity {
 
+	// 리뷰 게시판 코드. 리뷰는 일반 글 작성으로 쓸 수 없다. (COM-PST-11)
+	private static final String REVIEW_CODE = "REVIEW";
+
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	private Long id;
@@ -89,6 +92,11 @@ public class BoardType extends BaseTimeEntity {
 	public void deactivate(UUID updatedBy) {
 		this.active = false;
 		this.updatedBy = updatedBy;
+	}
+
+	// 리뷰 게시판인지 확인한다. 리뷰는 COM-REV-01로만 만든다. (COM-PST-11)
+	public boolean isReview() {
+		return REVIEW_CODE.equals(code);
 	}
 
 	private void applyFeatures(BoardFeatures features) {
