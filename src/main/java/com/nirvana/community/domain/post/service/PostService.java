@@ -52,7 +52,7 @@ public class PostService {
 
 	// 운영 중인 게시판이어야 하고(COM-BRD-12), 리뷰 게시판은 일반 글로 쓸 수 없다(COM-PST-11).
 	private BoardType getWritableBoardType(String boardCode) {
-		BoardType boardType = boardReader.getActiveBoardType(boardCode);
+		BoardType boardType = boardReader.getActiveBoardTypeWithShareLock(boardCode);
 		if (boardType.isReview()) {
 			throw new BusinessException(ErrorCode.REVIEW_BOARD_WRITE_NOT_ALLOWED);
 		}
@@ -69,7 +69,7 @@ public class PostService {
 		if (categoryUuid == null) {
 			throw new BusinessException(ErrorCode.CATEGORY_REQUIRED);
 		}
-		return boardReader.findCategory(categoryUuid)
+		return boardReader.findCategoryWithShareLock(categoryUuid)
 			.filter(category -> category.isUsableIn(boardType))
 			.orElseThrow(() -> new BusinessException(ErrorCode.INVALID_CATEGORY))
 			.getId();
