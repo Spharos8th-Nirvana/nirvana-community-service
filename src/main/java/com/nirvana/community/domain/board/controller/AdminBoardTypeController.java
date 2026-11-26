@@ -13,6 +13,7 @@ import com.nirvana.community.domain.board.dto.BoardTypeResponse;
 import com.nirvana.community.domain.board.dto.CreateBoardTypeRequest;
 import com.nirvana.community.domain.board.dto.UpdateBoardTypeRequest;
 import com.nirvana.community.domain.board.service.BoardTypeService;
+import com.nirvana.community.global.auth.AdminOnly;
 import com.nirvana.community.global.auth.CurrentRequester;
 import com.nirvana.community.global.auth.Requester;
 import com.nirvana.community.global.response.ApiResponse;
@@ -21,7 +22,8 @@ import io.swagger.v3.oas.annotations.Parameter;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
-// 플랫폼 관리자용 게시판 종류 관리. ADMIN인지는 Service가 확인한다.
+// 플랫폼 관리자용 게시판 종류 관리. ADMIN인지는 @AdminOnly(인터셉터)가 Service 호출 전에 확인한다.
+@AdminOnly
 @RestController
 @RequestMapping("/api/v1/admin/boards")
 @RequiredArgsConstructor
