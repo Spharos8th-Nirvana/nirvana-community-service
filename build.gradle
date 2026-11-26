@@ -40,6 +40,9 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-data-jpa'   // JPA(Hibernate)로 DB 테이블과 객체 연결
     runtimeOnly 'com.mysql:mysql-connector-j'                                // MySQL 접속 드라이버 (실행할 때만 필요)
     // =========================================================================
+    // 집계 수 저장소 - MongoDB (조회수·좋아요 수·댓글 수를 읽는 곳)
+    implementation 'org.springframework.boot:spring-boot-starter-data-mongodb'  // Spring Data MongoDB와 MongoDB 드라이버
+    // =========================================================================
     // 반복 코드 줄이기 - Lombok
     compileOnly 'org.projectlombok:lombok'                                   // 컴파일할 때 Lombok 애너테이션 사용
     annotationProcessor 'org.projectlombok:lombok'                           // 컴파일 중 Getter, Setter, Builder 등 생성
