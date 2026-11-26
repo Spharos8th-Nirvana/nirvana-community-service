@@ -18,6 +18,7 @@ import lombok.RequiredArgsConstructor;
 
 // 글·댓글 API가 게시판 종류와 요청자로 열람·작성 권한을 확인할 때 쓴다. (COM-BRD-01)
 // 요청자가 null이면 비회원(GUEST)으로 보고, 권한 행이 없으면 열람·작성 모두 거절한다.
+// 거절할 때 비회원은 로그인하면 될 수 있으므로 401, 로그인한 요청자는 403이다.
 @Component
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -35,14 +36,18 @@ public class BoardPermissionChecker {
 
 	public void validateReadable(Long boardTypeId, @Nullable Requester requester) {
 		if (!canRead(boardTypeId, requester)) {
-			throw new BusinessException(ErrorCode.FORBIDDEN);
+			throw denied(requester);
 		}
 	}
 
 	public void validateWritable(Long boardTypeId, @Nullable Requester requester) {
 		if (!canWrite(boardTypeId, requester)) {
-			throw new BusinessException(ErrorCode.FORBIDDEN);
+			throw denied(requester);
 		}
+	}
+
+	private BusinessException denied(@Nullable Requester requester) {
+		return new BusinessException(requester == null ? ErrorCode.UNAUTHORIZED : ErrorCode.FORBIDDEN);
 	}
 
 	private Optional<BoardPermission> findPermission(Long boardTypeId, @Nullable Requester requester) {
