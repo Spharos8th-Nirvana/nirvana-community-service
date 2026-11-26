@@ -23,6 +23,7 @@ public enum ErrorCode {
 	CATEGORY_REQUIRED(HttpStatus.BAD_REQUEST, "카테고리를 선택해주세요."),
 	CATEGORY_NOT_ALLOWED(HttpStatus.BAD_REQUEST, "카테고리를 쓰지 않는 게시판입니다."),
 	INVALID_CATEGORY(HttpStatus.BAD_REQUEST, "이 게시판에서 고를 수 있는 카테고리가 아닙니다."),
+	POST_CONTENT_EMPTY(HttpStatus.BAD_REQUEST, "본문에 내용을 입력해주세요. 허용하지 않는 태그와 이미지는 저장되지 않습니다."),
 	INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "서버 내부 오류가 발생했습니다.");
 
 	private final HttpStatus status;
