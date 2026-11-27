@@ -11,6 +11,7 @@ import com.nirvana.community.domain.post.dto.CreatePostRequest;
 import com.nirvana.community.domain.post.dto.CreatePostResponse;
 import com.nirvana.community.domain.post.dto.MyPostSummaryResponse;
 import com.nirvana.community.domain.post.dto.PostDetailResponse;
+import com.nirvana.community.domain.post.dto.PostSearchRequest;
 import com.nirvana.community.domain.post.dto.PostSummaryResponse;
 import com.nirvana.community.domain.post.dto.UpdatePostRequest;
 import com.nirvana.community.domain.post.dto.UpdatePostResponse;
@@ -25,7 +26,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 
 // 게시글 API의 Swagger 문서. 컨트롤러에는 요청 처리만 남기려고 문서 어노테이션을 여기에 둔다.
 // 경로·요청 매핑(@GetMapping, @PathVariable 등)은 PostController에 있다.
-@Tag(name = "게시글", description = "게시글 작성, 임시저장 글 공개, 게시글 목록 조회, 내가 쓴 글 목록 조회, 게시글 상세 조회, 게시글 수정, 게시글 삭제")
+@Tag(name = "게시글", description = "게시글 작성, 임시저장 글 공개, 게시글 목록 조회·검색, 내가 쓴 글 목록 조회, 게시글 상세 조회, 게시글 수정, 게시글 삭제")
 public interface PostControllerDocs {
 
 	@Operation(
@@ -42,11 +43,13 @@ public interface PostControllerDocs {
 	@Operation(
 		summary = "게시글 목록 조회",
 		description = "게시판의 공개 글을 최신순으로 조회한다. 로그인 없이 호출할 수 있다. 정렬은 고정이라 sort 값은 무시한다. "
+			+ "keyword(50자까지)를 주면 제목에 그 글자가 들어 있는 글만 주고, 앞뒤 공백은 자르며 공백뿐이면 전체 목록이다. "
 			+ "(COM-PST-20, COM-PST-21)")
 	ApiResponse<PageResponse<PostSummaryResponse>> list(
 		String boardCode,
 		@Parameter(hidden = true) @Nullable Requester requester,
 		@Nullable UUID categoryUuid,
+		@ParameterObject PostSearchRequest search,
 		@ParameterObject Pageable pageable);
 
 	@Operation(
