@@ -18,6 +18,8 @@ import com.nirvana.community.domain.post.dto.PostDetailResponse;
 import com.nirvana.community.domain.post.dto.PostDetailRow;
 import com.nirvana.community.domain.post.dto.PostSummaryResponse;
 import com.nirvana.community.domain.post.dto.PostSummaryRow;
+import com.nirvana.community.domain.post.dto.UpdatePostRequest;
+import com.nirvana.community.domain.post.dto.UpdatePostResponse;
 import com.nirvana.community.domain.post.entity.Post;
 import com.nirvana.community.domain.post.stats.dto.PostCounts;
 import com.nirvana.community.domain.post.stats.service.PostStatsReader;
@@ -26,7 +28,7 @@ import com.nirvana.community.global.response.PageResponse;
 
 import lombok.RequiredArgsConstructor;
 
-// 이 클래스에는 일부러 @Transactional을 붙이지 않는다. 트랜잭션은 PostWriter.create, PostQueryService 안에서만 열린다.
+// 이 클래스에는 일부러 @Transactional을 붙이지 않는다. 트랜잭션은 PostWriter, PostQueryService 안에서만 열린다.
 @Service
 @RequiredArgsConstructor
 public class PostService {
@@ -46,6 +48,18 @@ public class PostService {
 		Post post = postWriter.create(boardCode, requester, authorName, request.title(), content,
 			request.categoryUuid());
 		return CreatePostResponse.from(post);
+	}
+
+	// 본문 정제 → (트랜잭션) 확인과 수정. 정제는 DB를 쓰지 않아 트랜잭션 전에 한다. (COM-PST-08, COM-PST-04)
+	public UpdatePostResponse update(Requester requester, UUID postUuid, UpdatePostRequest request) {
+		String content = postContentSanitizer.sanitize(request.content());
+		Post post = postWriter.update(postUuid, requester, request.title(), content, request.categoryUuid());
+		return UpdatePostResponse.from(post);
+	}
+
+	// (트랜잭션) 확인과 삭제 표시. (COM-PST-09, COM-PST-15)
+	public void delete(Requester requester, UUID postUuid) {
+		postWriter.delete(postUuid, requester);
 	}
 
 	// 다건 조회: 게시판 글 목록. (트랜잭션) 글 한 페이지 → 카테고리 한 번에 → 집계 수 한 번에 → 응답. (COM-PST-20, COM-PST-21)

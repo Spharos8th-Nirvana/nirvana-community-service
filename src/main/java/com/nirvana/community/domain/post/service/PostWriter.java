@@ -19,7 +19,7 @@ import com.nirvana.community.global.exception.ErrorCode;
 
 import lombok.RequiredArgsConstructor;
 
-// 게시글 작성 중 DB 트랜잭션이 필요한 부분(확인과 저장)만 맡는다. PostService가 준비를 끝낸 뒤 부른다.
+// 게시글 작성·수정·삭제 중 DB 트랜잭션이 필요한 부분(확인과 저장)만 맡는다. PostService가 준비를 끝낸 뒤 부른다.
 // 게시판·카테고리를 잠근 채 확인하고 같은 트랜잭션에서 저장해야 확인과 저장 사이에 상태가 바뀌지 않는다.
 // PostService 안의 메서드로 두면 같은 클래스 안 호출이라 @Transactional이 걸리지 않아(self-invocation) 클래스를 나눴다.
 @Component
@@ -42,6 +42,34 @@ public class PostWriter {
 		return postRepository.save(post);
 	}
 
+	// 글 조회(없는 글·남의 임시저장·예약 글은 404) → 작성자·삭제 여부 확인 → 게시판 확인 → 작성 권한 확인
+	// → 카테고리 잠금·확인 → 수정. 변경 내용은 트랜잭션이 끝날 때 저장된다. (COM-PST-08, COM-PST-15, COM-BRD-04)
+	@Transactional
+	public Post update(UUID postUuid, Requester editor, String title, String content, @Nullable UUID categoryUuid) {
+		Post post = getVisiblePost(postUuid, editor);
+		post.validateUpdatableBy(editor);
+		BoardType boardType = boardReader.getActiveBoardTypeById(post.getTypeId());
+		boardPermissionChecker.validateWritable(boardType.getId(), editor);
+		Long categoryId = resolveCategoryId(boardType, categoryUuid);
+
+		post.update(editor, title, content, categoryId);
+		return post;
+	}
+
+	// 글 조회(없는 글·남의 임시저장·예약 글은 404, ADMIN도 같다) → 삭제 표시. 이미 삭제된 글이어도 같은 결과로 끝난다.
+	// 게시판 운영 여부·작성 권한은 보지 않는다. 삭제는 작성자 본인과 ADMIN이면 할 수 있다. (COM-PST-09, COM-PST-15, 4.5)
+	@Transactional
+	public void delete(UUID postUuid, Requester requester) {
+		getVisiblePost(postUuid, requester).delete(requester);
+	}
+
+	// 요청자에게 글이 있는 것으로 보이지 않으면 없는 글로 본다. (4.5)
+	private Post getVisiblePost(UUID postUuid, Requester requester) {
+		return postRepository.findByUuid(postUuid)
+			.filter(post -> post.isVisibleTo(requester))
+			.orElseThrow(() -> new BusinessException(ErrorCode.POST_NOT_FOUND));
+	}
+
 	// posts.scheduledAt은 DATETIME(초 단위)이라 MySQL이 소수 초를 반올림한다. 응답 값과 저장 값이 같도록 초 단위로 자른다.
 	private LocalDateTime publishedNow() {
 		return LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS);
@@ -56,7 +84,7 @@ public class PostWriter {
 		return boardType;
 	}
 
-	// 카테고리를 쓰는 게시판은 그 게시판의 사용 중인 카테고리를 꼭 고르고, 쓰지 않는 게시판은 카테고리를 받지 않는다.
+	// 작성과 수정이 같이 쓴다. 카테고리를 쓰는 게시판은 그 게시판의 사용 중인 카테고리를 꼭 고르고, 쓰지 않는 게시판은 카테고리를 받지 않는다.
 	// 없는 것, 다른 게시판 것, 보관된 것은 구분하지 않고 INVALID_CATEGORY로 거절한다. (COM-PST-02, COM-BRD-22)
 	private @Nullable Long resolveCategoryId(BoardType boardType, @Nullable UUID categoryUuid) {
 		if (!boardType.isUseCategory()) {
