@@ -6,7 +6,9 @@ import org.jspecify.annotations.Nullable;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -15,6 +17,8 @@ import org.springframework.web.bind.annotation.RestController;
 import com.nirvana.community.domain.comment.dto.CommentResponse;
 import com.nirvana.community.domain.comment.dto.CreateCommentRequest;
 import com.nirvana.community.domain.comment.dto.CreateCommentResponse;
+import com.nirvana.community.domain.comment.dto.UpdateCommentRequest;
+import com.nirvana.community.domain.comment.dto.UpdateCommentResponse;
 import com.nirvana.community.domain.comment.service.CommentService;
 import com.nirvana.community.global.auth.CurrentRequester;
 import com.nirvana.community.global.auth.Requester;
@@ -48,5 +52,23 @@ public class CommentController implements CommentControllerDocs {
 		@CurrentRequester(required = false) @Nullable Requester requester,
 		Pageable pageable) {
 		return ApiResponse.success(commentService.list(postUuid, requester, pageable));
+	}
+
+	@Override
+	@PatchMapping("/api/v1/comments/{commentUuid}")
+	public ApiResponse<UpdateCommentResponse> update(
+		@PathVariable UUID commentUuid,
+		@CurrentRequester Requester requester,
+		@Valid @RequestBody UpdateCommentRequest request) {
+		return ApiResponse.success(commentService.update(requester, commentUuid, request));
+	}
+
+	@Override
+	@DeleteMapping("/api/v1/comments/{commentUuid}")
+	public ResponseEntity<Void> delete(
+		@PathVariable UUID commentUuid,
+		@CurrentRequester Requester requester) {
+		commentService.delete(requester, commentUuid);
+		return ResponseEntity.noContent().build();
 	}
 }
