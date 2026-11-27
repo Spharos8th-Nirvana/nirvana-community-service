@@ -40,13 +40,13 @@ public class PostService {
 	private final BoardReader boardReader;
 	private final PostStatsReader postStatsReader;
 
-	// 본문 정제 → 작성자 이름 조회 → (트랜잭션) 확인과 저장. (COM-PST-01, COM-PST-04)
+	// 본문 정제 → 작성자 이름 조회 → (트랜잭션) 확인과 저장. 임시저장도 같은 순서다. (COM-PST-01, COM-PST-04, COM-PST-05)
 	// 작성자 이름은 나중에 Member·Temple 원격 호출로 바뀐다. 그동안 DB 커넥션을 붙잡지 않도록 트랜잭션 전에 구한다.
 	public CreatePostResponse create(Requester requester, String boardCode, CreatePostRequest request) {
 		String content = postContentSanitizer.sanitize(request.content());
 		String authorName = authorNameProvider.getAuthorName(requester);
 		Post post = postWriter.create(boardCode, requester, authorName, request.title(), content,
-			request.categoryUuid());
+			request.categoryUuid(), request.statusOrDefault());
 		return CreatePostResponse.from(post);
 	}
 

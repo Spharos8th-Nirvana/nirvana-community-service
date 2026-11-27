@@ -97,7 +97,7 @@ public class Post extends BaseTimeEntity {
 	private AccountType updateByType;
 
 	private Post(Long typeId, @Nullable Long categoryId, Requester author, String authorName, String title,
-		String content, LocalDateTime publishedAt) {
+		String content, PostStatus status, @Nullable LocalDateTime publishedAt) {
 		this.uuid = UUID.randomUUID();
 		this.typeId = typeId;
 		this.categoryId = categoryId;
@@ -106,7 +106,7 @@ public class Post extends BaseTimeEntity {
 		this.authorName = authorName;
 		this.title = title;
 		this.content = content;
-		this.status = PostStatus.PUBLISHED;
+		this.status = status;
 		this.scheduledAt = publishedAt;
 		this.hidden = false;
 		this.deleted = false;
@@ -115,7 +115,13 @@ public class Post extends BaseTimeEntity {
 	// 바로 공개되는 플랫폼 글을 만든다. 작성자는 요청자다. (COM-PST-01, COM-BRD-02)
 	public static Post create(Long typeId, @Nullable Long categoryId, Requester author, String authorName,
 		String title, String content, LocalDateTime publishedAt) {
-		return new Post(typeId, categoryId, author, authorName, title, content, publishedAt);
+		return new Post(typeId, categoryId, author, authorName, title, content, PostStatus.PUBLISHED, publishedAt);
+	}
+
+	// 임시저장 글을 만든다. 아직 공개되지 않아 공개 시각(scheduledAt)은 비워 둔다. 작성자 본인만 본다. (COM-PST-05, 4.5)
+	public static Post createDraft(Long typeId, @Nullable Long categoryId, Requester author, String authorName,
+		String title, String content) {
+		return new Post(typeId, categoryId, author, authorName, title, content, PostStatus.DRAFT, null);
 	}
 
 	// 수정할 수 있는 요청자인지 확인한다. 작성자 본인만 수정하고 ADMIN도 남의 글은 수정하지 않는다(COM-BRD-04).

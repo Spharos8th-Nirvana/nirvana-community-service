@@ -4,6 +4,9 @@ import java.util.UUID;
 
 import org.jspecify.annotations.Nullable;
 
+import com.nirvana.community.domain.post.entity.PostStatus;
+
+import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
@@ -19,6 +22,20 @@ public record CreatePostRequest(
 	String content,
 
 	// 카테고리를 쓰는 게시판에서만 보낸다. 형식이 UUID가 아니면 본문을 읽지 못해 400이다. (COM-PST-02)
-	@Nullable UUID categoryUuid
+	@Nullable UUID categoryUuid,
+
+	// 작성할 때 고르는 상태. DRAFT(임시저장) 또는 PUBLISHED(바로 공개)만 받고, 보내지 않으면 PUBLISHED다. (COM-PST-05)
+	// 예약(SCHEDULED)은 아직 만들지 않아 받지 않는다(COM-PST-06). 없는 값이면 본문을 읽지 못해 400이다.
+	@Nullable PostStatus status
 ) {
+
+	@AssertTrue(message = "작성할 때는 DRAFT 또는 PUBLISHED만 고를 수 있습니다.")
+	public boolean isStatusWritable() {
+		return status == null || status == PostStatus.DRAFT || status == PostStatus.PUBLISHED;
+	}
+
+	// 보내지 않으면 지금처럼 바로 공개한다.
+	public PostStatus statusOrDefault() {
+		return status == null ? PostStatus.PUBLISHED : status;
+	}
 }

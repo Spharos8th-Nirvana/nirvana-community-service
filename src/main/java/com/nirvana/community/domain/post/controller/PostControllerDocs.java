@@ -28,8 +28,10 @@ public interface PostControllerDocs {
 
 	@Operation(
 		summary = "게시글 작성",
-		description = "제목과 본문은 필수다. 본문 HTML은 허용한 서식 태그만 남기고 저장한다(img는 지금 지워진다). "
-			+ "카테고리를 쓰는 게시판은 categoryUuid가 필수다. (COM-PST-01, COM-PST-02, COM-PST-04)")
+		description = "status는 DRAFT(임시저장) 또는 PUBLISHED(바로 공개)이고 보내지 않으면 PUBLISHED다. 제목과 본문은 필수다. "
+			+ "본문 HTML은 허용한 서식 태그만 남기고 저장한다(img는 지금 지워진다). "
+			+ "카테고리를 쓰는 게시판은 categoryUuid가 필수다. "
+			+ "(COM-PST-01, COM-PST-02, COM-PST-04, COM-PST-05)")
 	ResponseEntity<ApiResponse<CreatePostResponse>> create(
 		String boardCode,
 		@Parameter(hidden = true) Requester requester,
