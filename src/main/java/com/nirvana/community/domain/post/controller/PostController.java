@@ -17,10 +17,12 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.nirvana.community.domain.post.dto.CreatePostRequest;
 import com.nirvana.community.domain.post.dto.CreatePostResponse;
+import com.nirvana.community.domain.post.dto.MyPostSummaryResponse;
 import com.nirvana.community.domain.post.dto.PostDetailResponse;
 import com.nirvana.community.domain.post.dto.PostSummaryResponse;
 import com.nirvana.community.domain.post.dto.UpdatePostRequest;
 import com.nirvana.community.domain.post.dto.UpdatePostResponse;
+import com.nirvana.community.domain.post.entity.PostStatus;
 import com.nirvana.community.domain.post.service.PostService;
 import com.nirvana.community.global.auth.CurrentRequester;
 import com.nirvana.community.global.auth.Requester;
@@ -55,6 +57,15 @@ public class PostController implements PostControllerDocs {
 		@RequestParam(required = false) @Nullable UUID categoryUuid,
 		Pageable pageable) {
 		return ApiResponse.success(postService.listPosts(boardCode, requester, categoryUuid, pageable));
+	}
+
+	@Override
+	@GetMapping("/api/v1/posts/me")
+	public ApiResponse<PageResponse<MyPostSummaryResponse>> listMine(
+		@CurrentRequester Requester requester,
+		@RequestParam(required = false) @Nullable PostStatus status,
+		Pageable pageable) {
+		return ApiResponse.success(postService.listMyPosts(requester, status, pageable));
 	}
 
 	@Override

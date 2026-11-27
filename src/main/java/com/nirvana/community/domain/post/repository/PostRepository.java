@@ -10,8 +10,11 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import com.nirvana.community.domain.post.dto.MyPostSummaryRow;
 import com.nirvana.community.domain.post.dto.PostSummaryRow;
 import com.nirvana.community.domain.post.entity.Post;
+import com.nirvana.community.domain.post.entity.PostStatus;
+import com.nirvana.community.global.auth.AccountType;
 
 public interface PostRepository extends JpaRepository<Post, Long> {
 
@@ -33,4 +36,21 @@ public interface PostRepository extends JpaRepository<Post, Long> {
 		""")
 	Page<PostSummaryRow> findVisibleSummaries(@Param("typeId") Long typeId,
 		@Param("categoryId") @Nullable Long categoryId, Pageable pageable);
+
+	// 다건 조회: 내가 쓴 글 목록에서 쓴다. 작성자(UUID와 종류)가 같은 글을 상태와 관계없이 읽고, 삭제한 글만 뺀다.
+	// 숨김 글도 읽는다(작성자는 자기 숨김 글을 본다). status가 null이면 상태로 거르지 않는다. (COM-PST-25, 4.5)
+	// 정렬은 부르는 쪽이 Pageable로 넘긴다. 본문은 읽지 않는다. (COM-PST-26)
+	@Query("""
+		select new com.nirvana.community.domain.post.dto.MyPostSummaryRow(
+			p.uuid, p.title, p.authorName, p.typeId, p.categoryId, p.thumbnailMediaUuid, p.status, p.hidden,
+			p.scheduledAt)
+		from Post p
+		where p.authorUuid = :authorUuid
+			and p.authorType = :authorType
+			and p.deleted = false
+			and (:status is null or p.status = :status)
+		""")
+	Page<MyPostSummaryRow> findMySummaries(@Param("authorUuid") UUID authorUuid,
+		@Param("authorType") AccountType authorType, @Param("status") @Nullable PostStatus status,
+		Pageable pageable);
 }

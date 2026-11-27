@@ -11,9 +11,12 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import com.nirvana.community.domain.board.entity.BoardCategory;
+import com.nirvana.community.domain.board.entity.BoardType;
 import com.nirvana.community.domain.board.service.BoardReader;
 import com.nirvana.community.domain.post.dto.CreatePostRequest;
 import com.nirvana.community.domain.post.dto.CreatePostResponse;
+import com.nirvana.community.domain.post.dto.MyPostSummaryResponse;
+import com.nirvana.community.domain.post.dto.MyPostSummaryRow;
 import com.nirvana.community.domain.post.dto.PostDetailResponse;
 import com.nirvana.community.domain.post.dto.PostDetailRow;
 import com.nirvana.community.domain.post.dto.PostSummaryResponse;
@@ -21,6 +24,7 @@ import com.nirvana.community.domain.post.dto.PostSummaryRow;
 import com.nirvana.community.domain.post.dto.UpdatePostRequest;
 import com.nirvana.community.domain.post.dto.UpdatePostResponse;
 import com.nirvana.community.domain.post.entity.Post;
+import com.nirvana.community.domain.post.entity.PostStatus;
 import com.nirvana.community.domain.post.stats.dto.PostCounts;
 import com.nirvana.community.domain.post.stats.service.PostStatsReader;
 import com.nirvana.community.global.auth.Requester;
@@ -78,6 +82,25 @@ public class PostService {
 		Map<UUID, PostCounts> counts = postStatsReader.getCountsByPostUuids(postUuidsOf(posts.getContent()));
 		return PageResponse.from(posts.map(post ->
 			PostSummaryResponse.of(post, categoryOf(post, categories),
+				counts.getOrDefault(post.postUuid(), PostCounts.ZERO))));
+	}
+
+	// 다건 조회: 내가 쓴 글 목록. (트랜잭션) 내 글 한 페이지 → 게시판·카테고리 한 번에 → 집계 수 한 번에 → 응답. (COM-PST-25)
+	// 게시판 목록과 같은 이유로 게시판·카테고리·집계 수는 글 조회 트랜잭션이 끝난 뒤 읽는다.
+	// 게시판은 지우지 않고 비활성화만 하므로(COM-BRD-12) 글의 게시판을 못 찾을 일이 없다.
+	public PageResponse<MyPostSummaryResponse> listMyPosts(Requester requester, @Nullable PostStatus status,
+		Pageable pageable) {
+		Page<MyPostSummaryRow> posts = postQueryService.listMyPosts(requester, status, pageable);
+		List<MyPostSummaryRow> rows = posts.getContent();
+		Map<Long, BoardType> boards = boardReader.findBoardTypesByIds(
+			rows.stream().map(MyPostSummaryRow::typeId).distinct().toList());
+		Map<Long, BoardCategory> categories = boardReader.findCategoriesByIds(
+			rows.stream().map(MyPostSummaryRow::categoryId).filter(Objects::nonNull).distinct().toList());
+		Map<UUID, PostCounts> counts = postStatsReader.getCountsByPostUuids(
+			rows.stream().map(MyPostSummaryRow::postUuid).toList());
+		return PageResponse.from(posts.map(post ->
+			MyPostSummaryResponse.of(post, boards.get(post.typeId()).getCode(),
+				post.categoryId() == null ? null : categories.get(post.categoryId()),
 				counts.getOrDefault(post.postUuid(), PostCounts.ZERO))));
 	}
 
