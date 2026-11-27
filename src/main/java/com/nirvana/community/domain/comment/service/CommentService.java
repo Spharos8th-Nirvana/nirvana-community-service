@@ -17,18 +17,22 @@ import org.springframework.transaction.annotation.Transactional;
 import com.nirvana.community.domain.comment.dto.CommentResponse;
 import com.nirvana.community.domain.comment.dto.CreateCommentRequest;
 import com.nirvana.community.domain.comment.dto.CreateCommentResponse;
+import com.nirvana.community.domain.comment.dto.UpdateCommentRequest;
+import com.nirvana.community.domain.comment.dto.UpdateCommentResponse;
 import com.nirvana.community.domain.comment.entity.Comment;
 import com.nirvana.community.domain.comment.repository.CommentRepository;
 import com.nirvana.community.domain.post.entity.Post;
 import com.nirvana.community.domain.post.service.PostQueryService;
 import com.nirvana.community.global.auth.Requester;
 import com.nirvana.community.global.author.AuthorNameProvider;
+import com.nirvana.community.global.exception.BusinessException;
+import com.nirvana.community.global.exception.ErrorCode;
 import com.nirvana.community.global.response.PageResponse;
 
 import lombok.RequiredArgsConstructor;
 
 // 댓글 API의 순서를 조립한다. 작성은 트랜잭션 밖에서 작성자 이름을 구한 뒤 CommentWriter에 넘긴다.
-// 목록은 외부 호출이 없어 메서드에 바로 읽기 트랜잭션을 건다.
+// 목록·수정·삭제는 외부 호출이 없어 메서드에 바로 트랜잭션을 건다.
 @Service
 @RequiredArgsConstructor
 public class CommentService {
@@ -63,6 +67,26 @@ public class CommentService {
 		Map<Long, List<Comment>> repliesByParent = findRepliesByParent(roots.getContent());
 		return PageResponse.from(roots.map(root ->
 			CommentResponse.of(root, buildReplies(root, repliesByParent, requester), requester)));
+	}
+
+	// 댓글 조회 → 작성자·삭제 여부 확인 → 수정. 변경 내용은 트랜잭션이 끝날 때 저장된다. (COM-CMT-04, COM-BRD-04)
+	// 글·게시판 상태는 보지 않는다. 요구사항에 조건이 없고, 삭제·숨김 글의 댓글은 목록에 나오지 않는다.
+	@Transactional
+	public UpdateCommentResponse update(Requester requester, UUID commentUuid, UpdateCommentRequest request) {
+		Comment comment = getComment(commentUuid);
+		comment.update(requester, request.content());
+		return UpdateCommentResponse.from(comment);
+	}
+
+	// 댓글 조회 → 삭제 표시. 이미 삭제된 댓글이어도 같은 결과로 끝난다. 글·게시판 상태는 보지 않는다. (COM-CMT-05, COM-BRD-04)
+	@Transactional
+	public void delete(Requester requester, UUID commentUuid) {
+		getComment(commentUuid).delete(requester);
+	}
+
+	private Comment getComment(UUID commentUuid) {
+		return commentRepository.findByUuid(commentUuid)
+			.orElseThrow(() -> new BusinessException(ErrorCode.COMMENT_NOT_FOUND));
 	}
 
 	private Map<Long, List<Comment>> findRepliesByParent(List<Comment> roots) {
