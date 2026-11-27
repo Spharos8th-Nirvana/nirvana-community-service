@@ -145,6 +145,19 @@ public class Post extends BaseTimeEntity {
 		this.updateByType = editor.accountType();
 	}
 
+	// 임시저장 글을 공개한다. 공개 시각을 기록하고 바꾼 사람의 구분을 남긴다. (COM-PST-05, COM-PST-12, COM-PST-14)
+	// 작성자 본인만, 삭제되지 않은 글만 공개한다(수정과 같은 규칙). 이미 공개된 글은 되돌리거나 다시 공개하지 않는다.
+	// 예약 글(SCHEDULED)의 공개는 예약 기능(COM-PST-07)에서 다루므로 여기서는 임시저장 글만 받는다.
+	public void publish(Requester editor, LocalDateTime publishedAt) {
+		validateUpdatableBy(editor);
+		if (status != PostStatus.DRAFT) {
+			throw new BusinessException(ErrorCode.POST_NOT_DRAFT);
+		}
+		this.status = PostStatus.PUBLISHED;
+		this.scheduledAt = publishedAt;
+		this.updateByType = editor.accountType();
+	}
+
 	// 행을 지우지 않고 삭제 표시만 한다. 상태(status)는 바꾸지 않는다. (COM-PST-09, COM-PST-12)
 	// 작성자 본인 또는 ADMIN만 삭제한다(COM-BRD-04). 이미 삭제된 글은 그대로 두어 같은 결과로 끝난다(COM-PST-15).
 	public void delete(Requester requester) {

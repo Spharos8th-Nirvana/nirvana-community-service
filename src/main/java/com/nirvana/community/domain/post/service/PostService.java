@@ -57,6 +57,12 @@ public class PostService {
 		return UpdatePostResponse.from(post);
 	}
 
+	// (트랜잭션) 확인과 공개. 응답은 수정과 같이 식별자·제목·상태만 준다. (COM-PST-05, COM-PST-12)
+	public UpdatePostResponse publish(Requester requester, UUID postUuid) {
+		Post post = postWriter.publish(postUuid, requester);
+		return UpdatePostResponse.from(post);
+	}
+
 	// (트랜잭션) 확인과 삭제 표시. (COM-PST-09, COM-PST-15)
 	public void delete(Requester requester, UUID postUuid) {
 		postWriter.delete(postUuid, requester);

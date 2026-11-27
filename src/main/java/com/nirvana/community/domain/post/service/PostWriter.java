@@ -60,6 +60,19 @@ public class PostWriter {
 		return post;
 	}
 
+	// 글 조회(없는 글·남의 임시저장·예약 글은 404) → 작성자·삭제 여부 확인 → 게시판 확인 → 작성 권한 확인
+	// → 공개(공개 시각은 지금). 게시판·권한 확인은 수정과 같다. 변경 내용은 트랜잭션이 끝날 때 저장된다. (COM-PST-12, COM-PST-14)
+	@Transactional
+	public Post publish(UUID postUuid, Requester editor) {
+		Post post = getVisiblePost(postUuid, editor);
+		post.validateUpdatableBy(editor);
+		BoardType boardType = boardReader.getActiveBoardTypeById(post.getTypeId());
+		boardPermissionChecker.validateWritable(boardType.getId(), editor);
+
+		post.publish(editor, publishedNow());
+		return post;
+	}
+
 	// 글 조회(없는 글·남의 임시저장·예약 글은 404, ADMIN도 같다) → 삭제 표시. 이미 삭제된 글이어도 같은 결과로 끝난다.
 	// 게시판 운영 여부·작성 권한은 보지 않는다. 삭제는 작성자 본인과 ADMIN이면 할 수 있다. (COM-PST-09, COM-PST-15, 4.5)
 	@Transactional
