@@ -39,19 +39,24 @@ public class PostQueryService {
 	// 최근에 쓴 글 먼저, 같으면 id 큰 것 먼저. 임시저장 글은 공개 시각이 없어 작성 시각으로 정렬한다. (COM-PST-25)
 	private static final Sort WRITTEN_LATEST_FIRST = Sort.by(Sort.Order.desc("createdAt"), Sort.Order.desc("id"));
 
+	// 키워드 LIKE 검색의 이스케이프 문자. MySQL 문자열에서 따로 처리되는 '\' 대신 '!'를 쓴다. 쿼리의 escape '!'와 같아야 한다.
+	private static final String LIKE_ESCAPE = "!";
+
 	private final PostRepository postRepository;
 	private final BoardReader boardReader;
 	private final BoardPermissionChecker boardPermissionChecker;
 
 	// 다건 조회: 게시판 글 목록 한 페이지를 읽는다. 게시판 확인 → 열람 권한 확인 → 카테고리 확인 → 조회.
 	// 공개 상태이고 숨김·삭제되지 않은 글만 준다. REVIEW 게시판도 막지 않는다. (COM-PST-20, COM-BRD-01, 4.5)
+	// keyword를 주면 제목에 그 글자가 들어 있는 글만 준다. null이면 거르지 않는다. (이슈 #47)
 	public Page<PostSummaryRow> listVisiblePosts(String boardCode, @Nullable Requester requester,
-		@Nullable UUID categoryUuid, Pageable pageable) {
+		@Nullable UUID categoryUuid, @Nullable String keyword, Pageable pageable) {
 		BoardType boardType = boardReader.getActiveBoardType(boardCode);
 		boardPermissionChecker.validateReadable(boardType.getId(), requester);
 		Long categoryId = resolveCategoryFilter(boardType, categoryUuid);
 		PageRequest latestFirst = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), LATEST_FIRST);
-		return postRepository.findVisibleSummaries(boardType.getId(), categoryId, latestFirst);
+		return postRepository.findVisibleSummaries(boardType.getId(), categoryId, toContainsPattern(keyword),
+			latestFirst);
 	}
 
 	// 다건 조회: 내가 쓴 글 목록 한 페이지를 읽는다. 임시저장·예약·공개·숨김 글을 모두 주고 삭제한 글만 뺀다. (COM-PST-25, 4.5)
@@ -77,6 +82,19 @@ public class PostQueryService {
 			return null;
 		}
 		return boardReader.findCategoryById(post.getCategoryId()).orElse(null);
+	}
+
+	// "키워드가 들어 있음" LIKE 패턴을 만든다. 키워드의 %, _, 이스케이프 문자는 글자 그대로 찾도록 앞에 '!'를 붙인다.
+	// 이스케이프 문자를 먼저 바꿔야 뒤에서 붙인 '!'가 두 번 바뀌지 않는다.
+	private @Nullable String toContainsPattern(@Nullable String keyword) {
+		if (keyword == null) {
+			return null;
+		}
+		String escaped = keyword
+			.replace(LIKE_ESCAPE, LIKE_ESCAPE + LIKE_ESCAPE)
+			.replace("%", LIKE_ESCAPE + "%")
+			.replace("_", LIKE_ESCAPE + "_");
+		return "%" + escaped + "%";
 	}
 
 	// 카테고리를 주지 않으면 거르지 않는다. 없는 것, 다른 게시판 것은 INVALID_CATEGORY(400)로 거절한다.

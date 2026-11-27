@@ -23,6 +23,7 @@ public interface PostRepository extends JpaRepository<Post, Long> {
 
 	// 다건 조회: 게시판 글 목록에서 쓴다. 공개 상태이고 숨김·삭제되지 않은 글만 읽는다. (COM-PST-20, 4.5, COM-NFR-05)
 	// categoryId가 null이면 카테고리로 거르지 않는다. 정렬은 부르는 쪽이 Pageable로 넘긴다.
+	// keywordPattern은 제목에 거는 LIKE 패턴이다. 부르는 쪽이 '!'로 이스케이프하고 %로 감싸서 넘기며, null이면 거르지 않는다.
 	// 목록에는 본문이 필요 없어 Post 전체 대신 필요한 컬럼만 고른다. (COM-PST-26)
 	@Query("""
 		select new com.nirvana.community.domain.post.dto.PostSummaryRow(
@@ -33,9 +34,11 @@ public interface PostRepository extends JpaRepository<Post, Long> {
 			and p.hidden = false
 			and p.deleted = false
 			and (:categoryId is null or p.categoryId = :categoryId)
+			and (:keywordPattern is null or p.title like :keywordPattern escape '!')
 		""")
 	Page<PostSummaryRow> findVisibleSummaries(@Param("typeId") Long typeId,
-		@Param("categoryId") @Nullable Long categoryId, Pageable pageable);
+		@Param("categoryId") @Nullable Long categoryId, @Param("keywordPattern") @Nullable String keywordPattern,
+		Pageable pageable);
 
 	// 다건 조회: 내가 쓴 글 목록에서 쓴다. 작성자(UUID와 종류)가 같은 글을 상태와 관계없이 읽고, 삭제한 글만 뺀다.
 	// 숨김 글도 읽는다(작성자는 자기 숨김 글을 본다). status가 null이면 상태로 거르지 않는다. (COM-PST-25, 4.5)

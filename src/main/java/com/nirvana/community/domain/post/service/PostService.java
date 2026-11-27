@@ -78,7 +78,8 @@ public class PostService {
 	// 카테고리는 지우지 않고 보관만 하므로(COM-BRD-22) 트랜잭션 밖에서 따로 읽어도 이름을 못 찾을 일이 없다.
 	public PageResponse<PostSummaryResponse> listPosts(String boardCode, @Nullable Requester requester,
 		@Nullable UUID categoryUuid, Pageable pageable) {
-		Page<PostSummaryRow> posts = postQueryService.listVisiblePosts(boardCode, requester, categoryUuid, pageable);
+		Page<PostSummaryRow> posts = postQueryService.listVisiblePosts(boardCode, requester, categoryUuid, null,
+			pageable);
 		Map<Long, BoardCategory> categories = boardReader.findCategoriesByIds(categoryIdsOf(posts.getContent()));
 		Map<UUID, PostCounts> counts = postStatsReader.getCountsByPostUuids(postUuidsOf(posts.getContent()));
 		return PageResponse.from(posts.map(post ->
