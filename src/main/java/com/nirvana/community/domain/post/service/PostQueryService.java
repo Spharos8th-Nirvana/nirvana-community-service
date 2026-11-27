@@ -14,9 +14,11 @@ import com.nirvana.community.domain.board.entity.BoardType;
 import com.nirvana.community.domain.board.service.BoardPermissionChecker;
 import com.nirvana.community.domain.board.service.BoardReader;
 import com.nirvana.community.domain.board.entity.BoardCategory;
+import com.nirvana.community.domain.post.dto.MyPostSummaryRow;
 import com.nirvana.community.domain.post.dto.PostDetailRow;
 import com.nirvana.community.domain.post.dto.PostSummaryRow;
 import com.nirvana.community.domain.post.entity.Post;
+import com.nirvana.community.domain.post.entity.PostStatus;
 import com.nirvana.community.domain.post.repository.PostRepository;
 import com.nirvana.community.global.auth.Requester;
 import com.nirvana.community.global.exception.BusinessException;
@@ -34,6 +36,9 @@ public class PostQueryService {
 	// 공개 시각 최신순, 같으면 나중에 쓴 글(id 큰 것) 먼저. 클라이언트의 sort는 받지 않는다. (COM-PST-14, COM-PST-20)
 	private static final Sort LATEST_FIRST = Sort.by(Sort.Order.desc("scheduledAt"), Sort.Order.desc("id"));
 
+	// 최근에 쓴 글 먼저, 같으면 id 큰 것 먼저. 임시저장 글은 공개 시각이 없어 작성 시각으로 정렬한다. (COM-PST-25)
+	private static final Sort WRITTEN_LATEST_FIRST = Sort.by(Sort.Order.desc("createdAt"), Sort.Order.desc("id"));
+
 	private final PostRepository postRepository;
 	private final BoardReader boardReader;
 	private final BoardPermissionChecker boardPermissionChecker;
@@ -47,6 +52,13 @@ public class PostQueryService {
 		Long categoryId = resolveCategoryFilter(boardType, categoryUuid);
 		PageRequest latestFirst = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), LATEST_FIRST);
 		return postRepository.findVisibleSummaries(boardType.getId(), categoryId, latestFirst);
+	}
+
+	// 다건 조회: 내가 쓴 글 목록 한 페이지를 읽는다. 임시저장·예약·공개·숨김 글을 모두 주고 삭제한 글만 뺀다. (COM-PST-25, 4.5)
+	// 자기 글이라 게시판 열람 권한은 보지 않고, 비활성 게시판의 글도 준다. 클라이언트의 sort는 받지 않는다.
+	public Page<MyPostSummaryRow> listMyPosts(Requester requester, @Nullable PostStatus status, Pageable pageable) {
+		PageRequest latestFirst = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), WRITTEN_LATEST_FIRST);
+		return postRepository.findMySummaries(requester.accountUuid(), requester.accountType(), status, latestFirst);
 	}
 
 	// 단건 조회: 게시글 상세. 글 조회(없는 글·남의 임시저장·예약 글은 404) → 게시판 확인 → 열람 권한 확인 → 카테고리.

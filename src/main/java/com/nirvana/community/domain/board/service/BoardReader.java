@@ -72,6 +72,16 @@ public class BoardReader {
 		return boardCategoryRepository.findByUuid(categoryUuid);
 	}
 
+	// 다건 조회: 내가 쓴 글 목록 한 페이지의 게시판을 한 번의 쿼리로 읽어 id별 Map으로 준다. 글마다 따로 읽지 않으려고 쓴다.
+	// 자기 글 목록이라 비활성 게시판도 거르지 않는다.
+	public Map<Long, BoardType> findBoardTypesByIds(Collection<Long> boardTypeIds) {
+		if (boardTypeIds.isEmpty()) {
+			return Map.of();
+		}
+		return boardTypeRepository.findAllById(boardTypeIds).stream()
+			.collect(Collectors.toMap(BoardType::getId, Function.identity()));
+	}
+
 	// 다건 조회: 게시글 목록 한 페이지의 카테고리를 한 번의 쿼리로 읽어 id별 Map으로 준다. 글마다 따로 읽지 않으려고 쓴다.
 	public Map<Long, BoardCategory> findCategoriesByIds(Collection<Long> categoryIds) {
 		if (categoryIds.isEmpty()) {

@@ -9,10 +9,12 @@ import org.springframework.http.ResponseEntity;
 
 import com.nirvana.community.domain.post.dto.CreatePostRequest;
 import com.nirvana.community.domain.post.dto.CreatePostResponse;
+import com.nirvana.community.domain.post.dto.MyPostSummaryResponse;
 import com.nirvana.community.domain.post.dto.PostDetailResponse;
 import com.nirvana.community.domain.post.dto.PostSummaryResponse;
 import com.nirvana.community.domain.post.dto.UpdatePostRequest;
 import com.nirvana.community.domain.post.dto.UpdatePostResponse;
+import com.nirvana.community.domain.post.entity.PostStatus;
 import com.nirvana.community.global.auth.Requester;
 import com.nirvana.community.global.response.ApiResponse;
 import com.nirvana.community.global.response.PageResponse;
@@ -23,7 +25,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 
 // 게시글 API의 Swagger 문서. 컨트롤러에는 요청 처리만 남기려고 문서 어노테이션을 여기에 둔다.
 // 경로·요청 매핑(@GetMapping, @PathVariable 등)은 PostController에 있다.
-@Tag(name = "게시글", description = "게시글 작성, 임시저장 글 공개, 게시글 목록 조회, 게시글 상세 조회, 게시글 수정, 게시글 삭제")
+@Tag(name = "게시글", description = "게시글 작성, 임시저장 글 공개, 게시글 목록 조회, 내가 쓴 글 목록 조회, 게시글 상세 조회, 게시글 수정, 게시글 삭제")
 public interface PostControllerDocs {
 
 	@Operation(
@@ -45,6 +47,15 @@ public interface PostControllerDocs {
 		String boardCode,
 		@Parameter(hidden = true) @Nullable Requester requester,
 		@Nullable UUID categoryUuid,
+		@ParameterObject Pageable pageable);
+
+	@Operation(
+		summary = "내가 쓴 글 목록 조회",
+		description = "내가 쓴 글을 최근에 쓴 순으로 조회한다. 임시저장·숨김 글을 포함하고 삭제한 글은 뺀다. status를 주면 그 상태의 글만 준다. "
+			+ "(COM-PST-25)")
+	ApiResponse<PageResponse<MyPostSummaryResponse>> listMine(
+		@Parameter(hidden = true) Requester requester,
+		@Nullable PostStatus status,
 		@ParameterObject Pageable pageable);
 
 	@Operation(
