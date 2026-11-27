@@ -28,6 +28,7 @@ public enum ErrorCode {
 	POST_NOT_DRAFT(HttpStatus.CONFLICT, "임시저장 글만 공개할 수 있습니다."),
 	POST_CONTENT_EMPTY(HttpStatus.BAD_REQUEST, "본문에 내용을 입력해주세요. 허용하지 않는 태그와 이미지는 저장되지 않습니다."),
 	POST_NOT_COMMENTABLE(HttpStatus.CONFLICT, "공개된 글에만 댓글을 쓸 수 있습니다."),
+	COMMENT_NOT_ALLOWED(HttpStatus.BAD_REQUEST, "댓글을 쓸 수 없는 게시판입니다."),
 	INVALID_PARENT_COMMENT(HttpStatus.BAD_REQUEST, "답글을 달 수 있는 댓글이 아닙니다."),
 	COMMENT_DEPTH_EXCEEDED(HttpStatus.BAD_REQUEST, "이 댓글에는 더 이상 답글을 달 수 없습니다."),
 	INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "서버 내부 오류가 발생했습니다.");
