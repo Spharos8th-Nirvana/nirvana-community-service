@@ -75,6 +75,14 @@ public class PostController implements PostControllerDocs {
 	}
 
 	@Override
+	@PostMapping("/api/v1/posts/{postUuid}/publish")
+	public ApiResponse<UpdatePostResponse> publish(
+		@PathVariable UUID postUuid,
+		@CurrentRequester Requester requester) {
+		return ApiResponse.success(postService.publish(requester, postUuid));
+	}
+
+	@Override
 	@DeleteMapping("/api/v1/posts/{postUuid}")
 	public ResponseEntity<Void> delete(
 		@PathVariable UUID postUuid,

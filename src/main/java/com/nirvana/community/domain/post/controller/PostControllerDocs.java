@@ -23,13 +23,15 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 
 // 게시글 API의 Swagger 문서. 컨트롤러에는 요청 처리만 남기려고 문서 어노테이션을 여기에 둔다.
 // 경로·요청 매핑(@GetMapping, @PathVariable 등)은 PostController에 있다.
-@Tag(name = "게시글", description = "게시글 작성, 게시글 목록 조회, 게시글 상세 조회, 게시글 수정, 게시글 삭제")
+@Tag(name = "게시글", description = "게시글 작성, 임시저장 글 공개, 게시글 목록 조회, 게시글 상세 조회, 게시글 수정, 게시글 삭제")
 public interface PostControllerDocs {
 
 	@Operation(
 		summary = "게시글 작성",
-		description = "제목과 본문은 필수다. 본문 HTML은 허용한 서식 태그만 남기고 저장한다(img는 지금 지워진다). "
-			+ "카테고리를 쓰는 게시판은 categoryUuid가 필수다. (COM-PST-01, COM-PST-02, COM-PST-04)")
+		description = "status는 DRAFT(임시저장) 또는 PUBLISHED(바로 공개)이고 보내지 않으면 PUBLISHED다. 제목과 본문은 필수다. "
+			+ "본문 HTML은 허용한 서식 태그만 남기고 저장한다(img는 지금 지워진다). "
+			+ "카테고리를 쓰는 게시판은 categoryUuid가 필수다. "
+			+ "(COM-PST-01, COM-PST-02, COM-PST-04, COM-PST-05)")
 	ResponseEntity<ApiResponse<CreatePostResponse>> create(
 		String boardCode,
 		@Parameter(hidden = true) Requester requester,
@@ -61,6 +63,14 @@ public interface PostControllerDocs {
 		UUID postUuid,
 		@Parameter(hidden = true) Requester requester,
 		UpdatePostRequest request);
+
+	@Operation(
+		summary = "임시저장 글 공개",
+		description = "내 임시저장 글을 지금 공개한다. 작성자 본인만 할 수 있다. 이미 공개된 글과 삭제된 글은 409. "
+			+ "(COM-PST-05, COM-PST-12)")
+	ApiResponse<UpdatePostResponse> publish(
+		UUID postUuid,
+		@Parameter(hidden = true) Requester requester);
 
 	@Operation(
 		summary = "게시글 삭제",

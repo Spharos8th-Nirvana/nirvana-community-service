@@ -12,6 +12,7 @@ import com.nirvana.community.domain.board.entity.BoardType;
 import com.nirvana.community.domain.board.service.BoardPermissionChecker;
 import com.nirvana.community.domain.board.service.BoardReader;
 import com.nirvana.community.domain.post.entity.Post;
+import com.nirvana.community.domain.post.entity.PostStatus;
 import com.nirvana.community.domain.post.repository.PostRepository;
 import com.nirvana.community.global.auth.Requester;
 import com.nirvana.community.global.exception.BusinessException;
@@ -30,15 +31,18 @@ public class PostWriter {
 	private final BoardReader boardReader;
 	private final BoardPermissionChecker boardPermissionChecker;
 
-	// 게시판 잠금·확인 → 작성 권한 확인 → 카테고리 잠금·확인 → 글 생성 → 저장. (COM-PST-01)
+	// 게시판 잠금·확인 → 작성 권한 확인 → 카테고리 잠금·확인 → 글 생성(임시저장 또는 공개) → 저장. (COM-PST-01, COM-PST-05)
+	// 임시저장도 게시판·권한·카테고리 규칙은 공개 작성과 같다. status는 요청 DTO가 DRAFT·PUBLISHED만 통과시킨다.
 	@Transactional
 	public Post create(String boardCode, Requester author, String authorName, String title, String content,
-		@Nullable UUID categoryUuid) {
+		@Nullable UUID categoryUuid, PostStatus status) {
 		BoardType boardType = getWritableBoardType(boardCode);
 		boardPermissionChecker.validateWritable(boardType.getId(), author);
 		Long categoryId = resolveCategoryId(boardType, categoryUuid);
 
-		Post post = Post.create(boardType.getId(), categoryId, author, authorName, title, content, publishedNow());
+		Post post = status == PostStatus.DRAFT
+			? Post.createDraft(boardType.getId(), categoryId, author, authorName, title, content)
+			: Post.create(boardType.getId(), categoryId, author, authorName, title, content, publishedNow());
 		return postRepository.save(post);
 	}
 
@@ -53,6 +57,19 @@ public class PostWriter {
 		Long categoryId = resolveCategoryId(boardType, categoryUuid);
 
 		post.update(editor, title, content, categoryId);
+		return post;
+	}
+
+	// 글 조회(없는 글·남의 임시저장·예약 글은 404) → 작성자·삭제 여부 확인 → 게시판 확인 → 작성 권한 확인
+	// → 공개(공개 시각은 지금). 게시판·권한 확인은 수정과 같다. 변경 내용은 트랜잭션이 끝날 때 저장된다. (COM-PST-12, COM-PST-14)
+	@Transactional
+	public Post publish(UUID postUuid, Requester editor) {
+		Post post = getVisiblePost(postUuid, editor);
+		post.validateUpdatableBy(editor);
+		BoardType boardType = boardReader.getActiveBoardTypeById(post.getTypeId());
+		boardPermissionChecker.validateWritable(boardType.getId(), editor);
+
+		post.publish(editor, publishedNow());
 		return post;
 	}
 
