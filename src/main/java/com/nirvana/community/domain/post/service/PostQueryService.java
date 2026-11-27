@@ -61,6 +61,25 @@ public class PostQueryService {
 		return postRepository.findMySummaries(requester.accountUuid(), requester.accountType(), status, latestFirst);
 	}
 
+	// 단건 조회: 좋아요·취소에서 대상 글을 읽는다. like 도메인은 PostRepository 대신 이 메서드를 쓴다.
+	// 글 조회(없는 글·남의 임시저장·예약 글은 404) → 게시판 확인 → 열람 권한 확인 → 좋아요를 쓰는 게시판인지(400)
+	// → 좋아요할 수 있는 글인지(내 임시저장·예약 글, 숨김·삭제 글은 409). 권한을 먼저 봐서 못 보는 사람에게 글 상태가 새지 않게 한다.
+	// (COM-LIK-01, COM-LIK-12, COM-BRD-01, 4.5)
+	public Post getLikeablePost(UUID postUuid, Requester requester) {
+		Post post = postRepository.findByUuid(postUuid)
+			.filter(found -> found.isVisibleTo(requester))
+			.orElseThrow(() -> new BusinessException(ErrorCode.POST_NOT_FOUND));
+		BoardType boardType = boardReader.getActiveBoardTypeById(post.getTypeId());
+		boardPermissionChecker.validateReadable(boardType.getId(), requester);
+		if (!boardType.isAllowLike()) {
+			throw new BusinessException(ErrorCode.LIKE_NOT_ALLOWED);
+		}
+		if (!post.isLikeable()) {
+			throw new BusinessException(ErrorCode.POST_NOT_LIKEABLE);
+		}
+		return post;
+	}
+
 	// 단건 조회: 게시글 상세. 글 조회(없는 글·남의 임시저장·예약 글은 404) → 게시판 확인 → 열람 권한 확인 → 카테고리.
 	// 숨김·삭제 글도 여기서는 돌려준다. 본문을 보여 줄지는 PostService가 Post에 물어 정한다. (COM-PST-23, COM-BRD-01, 4.5)
 	public PostDetailRow getVisiblePost(UUID postUuid, @Nullable Requester requester) {
