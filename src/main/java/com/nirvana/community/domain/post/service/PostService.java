@@ -28,6 +28,7 @@ import com.nirvana.community.domain.post.entity.PostStatus;
 import com.nirvana.community.domain.post.stats.dto.PostCounts;
 import com.nirvana.community.domain.post.stats.service.PostStatsReader;
 import com.nirvana.community.global.auth.Requester;
+import com.nirvana.community.global.author.AuthorNameProvider;
 import com.nirvana.community.global.response.PageResponse;
 
 import lombok.RequiredArgsConstructor;

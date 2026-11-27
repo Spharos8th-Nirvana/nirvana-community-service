@@ -1,4 +1,4 @@
-package com.nirvana.community.domain.post.service;
+package com.nirvana.community.global.author;
 
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
