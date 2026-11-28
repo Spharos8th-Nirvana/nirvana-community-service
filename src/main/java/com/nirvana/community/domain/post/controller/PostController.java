@@ -8,6 +8,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -19,6 +20,7 @@ import com.nirvana.community.domain.post.dto.CreatePostRequest;
 import com.nirvana.community.domain.post.dto.CreatePostResponse;
 import com.nirvana.community.domain.post.dto.MyPostSummaryResponse;
 import com.nirvana.community.domain.post.dto.PostDetailResponse;
+import com.nirvana.community.domain.post.dto.PostSearchRequest;
 import com.nirvana.community.domain.post.dto.PostSummaryResponse;
 import com.nirvana.community.domain.post.dto.UpdatePostRequest;
 import com.nirvana.community.domain.post.dto.UpdatePostResponse;
@@ -55,8 +57,10 @@ public class PostController implements PostControllerDocs {
 		@PathVariable String boardCode,
 		@CurrentRequester(required = false) @Nullable Requester requester,
 		@RequestParam(required = false) @Nullable UUID categoryUuid,
+		@Valid @ModelAttribute PostSearchRequest search,
 		Pageable pageable) {
-		return ApiResponse.success(postService.listPosts(boardCode, requester, categoryUuid, pageable));
+		return ApiResponse.success(
+			postService.listPosts(boardCode, requester, categoryUuid, search.keywordOrNull(), pageable));
 	}
 
 	@Override

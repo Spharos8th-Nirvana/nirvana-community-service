@@ -73,12 +73,14 @@ public class PostService {
 		postWriter.delete(postUuid, requester);
 	}
 
-	// 다건 조회: 게시판 글 목록. (트랜잭션) 글 한 페이지 → 카테고리 한 번에 → 집계 수 한 번에 → 응답. (COM-PST-20, COM-PST-21)
+	// 다건 조회: 게시판 글 목록. keyword는 앞뒤 공백을 자른 값이고, 없거나 공백뿐이면 null이라 전체 목록이다.
+	// (트랜잭션) 글 한 페이지 → 카테고리 한 번에 → 집계 수 한 번에 → 응답. (COM-PST-20, COM-PST-21)
 	// 카테고리와 MongoDB 집계 수는 글 조회 트랜잭션이 끝난 뒤 읽는다. MongoDB가 늦거나 꺼져도 DB 커넥션을 붙잡지 않는다.
 	// 카테고리는 지우지 않고 보관만 하므로(COM-BRD-22) 트랜잭션 밖에서 따로 읽어도 이름을 못 찾을 일이 없다.
 	public PageResponse<PostSummaryResponse> listPosts(String boardCode, @Nullable Requester requester,
-		@Nullable UUID categoryUuid, Pageable pageable) {
-		Page<PostSummaryRow> posts = postQueryService.listVisiblePosts(boardCode, requester, categoryUuid, pageable);
+		@Nullable UUID categoryUuid, @Nullable String keyword, Pageable pageable) {
+		Page<PostSummaryRow> posts = postQueryService.listVisiblePosts(boardCode, requester, categoryUuid, keyword,
+			pageable);
 		Map<Long, BoardCategory> categories = boardReader.findCategoriesByIds(categoryIdsOf(posts.getContent()));
 		Map<UUID, PostCounts> counts = postStatsReader.getCountsByPostUuids(postUuidsOf(posts.getContent()));
 		return PageResponse.from(posts.map(post ->
