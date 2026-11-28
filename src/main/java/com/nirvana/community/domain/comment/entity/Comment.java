@@ -110,4 +110,32 @@ public class Comment extends BaseTimeEntity {
 		}
 		return new Comment(postId, id, depth + 1, author, authorName, content);
 	}
+
+	// 목록에서 빼거나 자리만 남기는 댓글인지(삭제 또는 숨김). 답글이 있으면 자리만 남고 없으면 목록에서 빠진다. (COM-CMT-06)
+	public boolean isRemoved() {
+		return deleted || hidden;
+	}
+
+	// 내용까지 볼 수 있는지. 규칙은 게시글(Post.isContentViewableBy)과 같다. (COM-CMT-06, 4.5)
+	// 삭제 댓글은 아무도 못 보고, 숨김 댓글은 ADMIN과 작성자 본인만 본다.
+	public boolean isContentViewableBy(@Nullable Requester requester) {
+		if (deleted) {
+			return false;
+		}
+		if (hidden) {
+			return isAdmin(requester) || isWrittenBy(requester);
+		}
+		return true;
+	}
+
+	// 요청자가 이 댓글의 작성자인지. 비회원(null)은 작성자가 아니다. 다른 계정 종류끼리 UUID가 겹쳐도 구분되게 종류도 본다.
+	public boolean isWrittenBy(@Nullable Requester requester) {
+		return requester != null
+			&& authorUuid.equals(requester.accountUuid())
+			&& authorType == requester.accountType();
+	}
+
+	private boolean isAdmin(@Nullable Requester requester) {
+		return requester != null && requester.accountType() == AccountType.ADMIN;
+	}
 }
