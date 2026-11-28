@@ -191,6 +191,11 @@ public class Post extends BaseTimeEntity {
 		return true;
 	}
 
+	// 댓글을 달 수 있는 글인지. 공개 상태이고 숨김·삭제되지 않은 글에만 댓글을 쓴다. (COM-CMT-01)
+	public boolean isCommentable() {
+		return status == PostStatus.PUBLISHED && !hidden && !deleted;
+	}
+
 	// 요청자가 이 글의 작성자인지. 비회원(null)은 작성자가 아니다. 다른 계정 종류끼리 UUID가 겹쳐도 구분되게 종류도 본다.
 	public boolean isWrittenBy(@Nullable Requester requester) {
 		return requester != null

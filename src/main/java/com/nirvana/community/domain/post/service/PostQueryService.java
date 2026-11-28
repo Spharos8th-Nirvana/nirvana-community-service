@@ -72,6 +72,19 @@ public class PostQueryService {
 		return new PostDetailRow(post, boardType.getCode(), findCategoryOf(post));
 	}
 
+	// 단건 조회: 댓글 작성에서 댓글을 달 글을 읽는다. comment 도메인은 PostRepository 대신 이 메서드를 쓴다.
+	// 없는 글·남의 임시저장·예약 글은 404, 내 임시저장·예약 글과 숨김·삭제 글은 댓글을 쓸 수 없어 409다. (COM-CMT-01, 4.5)
+	// 게시판 확인과 작성 권한 확인은 부르는 쪽이 한다.
+	public Post getCommentablePost(UUID postUuid, Requester requester) {
+		Post post = postRepository.findByUuid(postUuid)
+			.filter(found -> found.isVisibleTo(requester))
+			.orElseThrow(() -> new BusinessException(ErrorCode.POST_NOT_FOUND));
+		if (!post.isCommentable()) {
+			throw new BusinessException(ErrorCode.POST_NOT_COMMENTABLE);
+		}
+		return post;
+	}
+
 	private @Nullable BoardCategory findCategoryOf(Post post) {
 		if (post.getCategoryId() == null) {
 			return null;
