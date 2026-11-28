@@ -203,6 +203,11 @@ public class Post extends BaseTimeEntity {
 			&& authorType == requester.accountType();
 	}
 
+	// 좋아요를 누르거나 취소할 수 있는 글인지. 공개 상태이고 숨김·삭제되지 않은 글만 된다. (COM-LIK-01, COM-LIK-12)
+	public boolean isLikeable() {
+		return status == PostStatus.PUBLISHED && !hidden && !deleted;
+	}
+
 	private boolean isAdmin(@Nullable Requester requester) {
 		return requester != null && requester.accountType() == AccountType.ADMIN;
 	}

@@ -18,5 +18,6 @@ public class RequesterWebMvcConfig implements WebMvcConfigurer {
 	@Override
 	public void addInterceptors(InterceptorRegistry registry) {
 		registry.addInterceptor(new AdminOnlyInterceptor());
+		registry.addInterceptor(new UserOnlyInterceptor());
 	}
 }

@@ -24,6 +24,8 @@ public enum ErrorCode {
 	CATEGORY_NOT_ALLOWED(HttpStatus.BAD_REQUEST, "카테고리를 쓰지 않는 게시판입니다."),
 	INVALID_CATEGORY(HttpStatus.BAD_REQUEST, "이 게시판에서 고를 수 있는 카테고리가 아닙니다."),
 	POST_NOT_FOUND(HttpStatus.NOT_FOUND, "게시글을 찾을 수 없습니다."),
+	POST_NOT_LIKEABLE(HttpStatus.CONFLICT, "공개된 글에만 좋아요를 누르거나 취소할 수 있습니다."),
+	LIKE_NOT_ALLOWED(HttpStatus.BAD_REQUEST, "좋아요를 쓰지 않는 게시판입니다."),
 	POST_ALREADY_DELETED(HttpStatus.CONFLICT, "삭제된 게시글은 바꿀 수 없습니다."),
 	POST_NOT_DRAFT(HttpStatus.CONFLICT, "임시저장 글만 공개할 수 있습니다."),
 	POST_CONTENT_EMPTY(HttpStatus.BAD_REQUEST, "본문에 내용을 입력해주세요. 허용하지 않는 태그와 이미지는 저장되지 않습니다."),
