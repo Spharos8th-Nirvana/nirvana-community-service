@@ -111,6 +111,27 @@ public class Comment extends BaseTimeEntity {
 		return new Comment(postId, id, depth + 1, author, authorName, content);
 	}
 
+	// 내용을 바꾼다. 작성자 본인만 수정하고 ADMIN도 남의 댓글은 수정하지 않는다(COM-BRD-04).
+	// 삭제된 댓글은 수정하지 못한다. 수정 시각은 Auditing이 갱신한다. (COM-CMT-04)
+	public void update(Requester editor, String content) {
+		if (!isWrittenBy(editor)) {
+			throw new BusinessException(ErrorCode.FORBIDDEN);
+		}
+		if (deleted) {
+			throw new BusinessException(ErrorCode.COMMENT_ALREADY_DELETED);
+		}
+		this.content = content;
+	}
+
+	// 행을 지우지 않고 삭제 표시만 한다. 작성자 본인 또는 ADMIN만 삭제한다(COM-BRD-04).
+	// 이미 삭제된 댓글은 그대로 두어 같은 결과로 끝난다. (COM-CMT-05)
+	public void delete(Requester requester) {
+		if (!isWrittenBy(requester) && !isAdmin(requester)) {
+			throw new BusinessException(ErrorCode.FORBIDDEN);
+		}
+		this.deleted = true;
+	}
+
 	// 목록에서 빼거나 자리만 남기는 댓글인지(삭제 또는 숨김). 답글이 있으면 자리만 남고 없으면 목록에서 빠진다. (COM-CMT-06)
 	public boolean isRemoved() {
 		return deleted || hidden;

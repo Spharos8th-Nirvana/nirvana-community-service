@@ -15,7 +15,8 @@ import com.nirvana.community.domain.comment.entity.Comment;
 
 public interface CommentRepository extends JpaRepository<Comment, Long> {
 
-	// 단건 조회: 답글 작성에서 부모 댓글을 읽는다. 삭제·숨김과 관계없이 읽고, 답글을 달 수 있는지는 Comment가 판단한다. (COM-CMT-02)
+	// 단건 조회: 답글 작성의 부모 댓글, 댓글 수정·삭제에서 쓴다. 삭제·숨김과 관계없이 읽고, 할 수 있는지는 Comment가 판단한다.
+	// (COM-CMT-02, COM-CMT-04, COM-CMT-05)
 	Optional<Comment> findByUuid(UUID uuid);
 
 	// 다건 조회: 댓글 목록 한 페이지의 원댓글(깊이 0)을 읽는다. 정렬은 부르는 쪽이 Pageable로 넘긴다. (COM-CMT-03, COM-CMT-09)
